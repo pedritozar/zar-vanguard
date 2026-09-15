@@ -15,6 +15,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
+<!-- ══ TANDA 3 — Chart.js (misma versión que trading-desk/index.html) ══ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -146,6 +149,9 @@ body{font-family:var(--font);color:var(--txt);font-size:14px;line-height:1.5;min
 .tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
 
 #apikey-panel{display:none;position:fixed;top:60px;right:24px;background:var(--white);border:1px solid var(--border);border-radius:var(--r2);padding:14px;box-shadow:var(--sh);z-index:400;width:260px;}
+
+/* ============ TANDA 3 — Badge de glide path por bucket ============ */
+.glide-badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;color:#fff;letter-spacing:.3px;}
 </style>
 </head>
 <body>
@@ -205,14 +211,23 @@ body{font-family:var(--font);color:var(--txt);font-size:14px;line-height:1.5;min
       <div style="font-size:10px;color:var(--text3);" id="res-nota">Cargando datos…</div>
     </div>
 
+    <!-- ============ TANDA 3 — Aporte sugerido del mes (solo lectura, no escribe nada) ============ -->
+    <div class="card" id="sugerido-card">
+      <div class="card-ttl">💡 Aporte sugerido de este mes</div>
+      <div id="sugerido-body">
+        <div class="empty-note">Calculando sugerencia…</div>
+      </div>
+    </div>
+
     <!-- 4 buckets -->
     <div class="buckets-grid" id="buckets-grid">
       <div class="empty-note">Cargando buckets…</div>
     </div>
 
     <div class="footer-note">
-      ZAR Vanguard Capital Partners — Fondo de Emergencia + sub-buckets. Glide path, suavizado
-      de aportes y directorio de cargos se suman en tandas futuras sin reescribir esta base.
+      ZAR Vanguard Capital Partners — Fondo de Emergencia + sub-buckets, con glide path por
+      bucket y regla de suavizado de aportes. Directorio de cargos y tutor educativo se suman
+      en tandas futuras sin reescribir esta base.
     </div>
 
   </div>
@@ -228,6 +243,11 @@ body{font-family:var(--font);color:var(--txt);font-size:14px;line-height:1.5;min
           <div class="resumen-big" id="port-total">$0</div>
           <div class="resumen-meta">Renta fija: <span id="port-rf-pct">0%</span> · Variable: <span id="port-var-pct">0%</span></div>
         </div>
+      </div>
+      <!-- ============ TANDA 3 — Charts de composición y TIR/duración ============ -->
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;">
+        <div style="flex:1;min-width:200px;max-width:260px;"><canvas id="port-chart-composicion"></canvas></div>
+        <div style="flex:2;min-width:260px;"><canvas id="port-chart-tir-duracion"></canvas></div>
       </div>
     </div>
 
@@ -291,8 +311,9 @@ body{font-family:var(--font);color:var(--txt);font-size:14px;line-height:1.5;min
 
     <div class="footer-note">
       ZAR Vanguard Capital Partners — Tanda 2 (Portafolio Cocos Capital: alta manual + extracción por
-      visión con revisión humana obligatoria, motor de valuación de renta fija). Glide path, suavizado
-      de aportes y directorio de cargos se suman en tandas futuras sin reescribir esta base.
+      visión con revisión humana obligatoria, motor de valuación de renta fija). Tanda 3 (glide path
+      por bucket, suavizado de aportes, gráficos con Chart.js). Directorio de cargos y tutor educativo
+      se suman en tandas futuras sin reescribir esta base.
     </div>
 
   </div>
@@ -496,12 +517,44 @@ function renderResumen(){
     ? '🏆 Meta del Fondo de Emergencia cubierta.'
     : `Faltan ${fmt(Math.max(metaTotal - acumTotal, 0))} para completar el fondo.`;
 }
+
+// ============ TANDA 3 — Glide path por bucket ============
+// Glide path "through": no se aplana al llegar a 100%, sigue vigente.
+// colorVar es el NOMBRE de la variable CSS (sin var(), sin #) para poder
+// usarse tanto en CSS inline (var(--x)) como resuelta en JS con cssVar()
+// para Chart.js.
+function faseGlidePath(pct){
+  if (pct < 40){
+    return {
+      fase: 'acumulacion',
+      etiqueta: 'Acumulación',
+      colorVar: '--blue',
+      nota: 'Meta lejos: algo de rendimiento tolerado (plazo fijo corto, money market).'
+    };
+  }
+  if (pct < 75){
+    return {
+      fase: 'transicion',
+      etiqueta: 'Transición',
+      colorVar: '--amber',
+      nota: 'Aportes nuevos y parte de lo acumulado migran a liquidez.'
+    };
+  }
+  return {
+    fase: 'liquidez_total',
+    etiqueta: 'Liquidez total',
+    colorVar: '--green',
+    nota: 'Meta alcanzada o superada: liquidez total, revisión continua (nunca "termina").'
+  };
+}
+
 function renderBucketCard(bucketId){
   const def = BUCKETS_LIVE[bucketId];
   if (!def) return '';
   const meta = Number(def.metaARS) || 0;
   const acumulado = acumuladoBucket(bucketId);
   const pct = meta > 0 ? (acumulado / meta * 100) : 0;
+  const fase = faseGlidePath(pct);
   const aportesArr = Object.entries(APORTES_LIVE[bucketId] || {})
     .map(([id, a]) => ({ id, monto: parseFloat(a.monto)||0, fecha: a.fecha }))
     .sort((a,b) => b.fecha.localeCompare(a.fecha));
@@ -525,6 +578,13 @@ function renderBucketCard(bucketId){
   return `
   <div class="bucket-card">
     <div class="bucket-nombre">${def.nombre}</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <canvas id="gauge-${bucketId}" width="56" height="56"></canvas>
+      <div style="flex:1;">
+        <span class="glide-badge" style="background:var(${fase.colorVar});">${fase.etiqueta}</span>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;">${fase.nota}</div>
+      </div>
+    </div>
     <div class="bucket-nums"><span>Meta: ${fmt(meta)}</span><b>${fmt(acumulado)}</b></div>
     <div class="dti-bg"><div class="dti-fill" style="width:${Math.min(pct,100)}%;background:${pct>=100?'var(--green)':'var(--blue)'};"></div></div>
     <div class="bucket-pct">${pct.toFixed(1)}% de la meta</div>
@@ -554,10 +614,19 @@ function renderBuckets(){
     return;
   }
   grid.innerHTML = disponibles.map(id => renderBucketCard(id)).join('');
+  // ── TANDA 3: dibujar los gauges después de insertar el HTML en el DOM ──
+  disponibles.forEach(id => {
+    const def = BUCKETS_LIVE[id];
+    const meta = Number(def.metaARS) || 0;
+    const acumulado = acumuladoBucket(id);
+    const pct = meta > 0 ? (acumulado / meta * 100) : 0;
+    renderGaugeBucket(id, pct, faseGlidePath(pct).colorVar);
+  });
 }
 function renderTodo(){
   renderResumen();
   renderBuckets();
+  renderAporteSugerido();
 }
 
 // ============ ARRANQUE ============
@@ -994,6 +1063,10 @@ function renderResumenPortafolio(){
   if (elTotal) elTotal.textContent = fmt(total);
   if (elRf) elRf.textContent = total > 0 ? (totalRF/total*100).toFixed(1)+'%' : '0%';
   if (elVar) elVar.textContent = total > 0 ? (totalVar/total*100).toFixed(1)+'%' : '0%';
+  // ── TANDA 3: charts de composición y TIR/duración, se dibujan después de
+  // actualizar el resumen (los canvas ya están en el DOM desde el HTML fijo) ──
+  renderChartComposicion();
+  renderChartTirDuracion();
 }
 function renderHoldingCard(id, h){
   const valor = valorMercadoHolding(h);
@@ -1064,6 +1137,191 @@ function renderHoldingsGrid(){
 function renderPortafolio(){
   renderResumenPortafolio();
   renderHoldingsGrid();
+}
+
+// ============ TANDA 3 — Chart.js: helper + instancias globales + re-pintado por tema ============
+// Lee el valor RESUELTO de una variable CSS (Chart.js pinta en un <canvas>,
+// no puede usar var(--x) directo como getComputedStyle sí puede).
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// Chart.js no soporta re-crear sobre el mismo canvas sin destroy() previo.
+let chartsBucketGauge = {};      // { bucketId: instancia }
+let chartPortComposicion = null;
+let chartPortTirDuracion = null;
+
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    renderBuckets();      // ya existe (Tanda 1) -- ahora también dispara los gauges
+    renderPortafolio();   // ya existe (Tanda 2) -- ahora también dispara los charts de Portafolio
+  });
+}
+
+// ── 3a. Gauge de progreso por bucket, coloreado por fase ──
+function renderGaugeBucket(bucketId, pct, colorVarFase){
+  const canvas = document.getElementById('gauge-' + bucketId);
+  if (!canvas || typeof Chart === 'undefined') return;
+  const pctClamp = Math.max(0, Math.min(pct, 100));
+  if (chartsBucketGauge[bucketId]) chartsBucketGauge[bucketId].destroy();
+  chartsBucketGauge[bucketId] = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [pctClamp, 100 - pctClamp],
+        backgroundColor: [cssVar(colorVarFase), cssVar('--border')],
+        borderWidth: 0
+      }]
+    },
+    options: { cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } }, animation: false }
+  });
+}
+
+// ── 3b. Composición del Portafolio (renta fija vs. variable) ──
+function renderChartComposicion(){
+  const canvas = document.getElementById('port-chart-composicion');
+  if (!canvas || typeof Chart === 'undefined') return;
+  let rentaFija = 0, variable = 0;
+  Object.values(HOLDINGS_LIVE).forEach(h => {
+    const v = valorMercadoHolding(h);
+    if (h.tipo === 'rentaFija') rentaFija += v; else variable += v;
+  });
+  if (chartPortComposicion) chartPortComposicion.destroy();
+  if (rentaFija + variable <= 0) return; // nada cargado todavía, no dibujar vacío
+  chartPortComposicion = new Chart(canvas.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Renta fija', 'Variable'],
+      datasets: [{ data: [rentaFija, variable], backgroundColor: [cssVar('--blue'), cssVar('--amber')], borderWidth: 0 }]
+    },
+    options: { plugins: { legend: { position: 'bottom', labels: { color: cssVar('--txt') } } } }
+  });
+}
+
+// ── 3c. Vista TIR/duración (un punto por tenencia de renta fija) ──
+function renderChartTirDuracion(){
+  const canvas = document.getElementById('port-chart-tir-duracion');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const puntos = Object.values(HOLDINGS_LIVE)
+    .filter(h => h.tipo === 'rentaFija')
+    .map(h => {
+      const v = calcularValuacionRentaFija(h);
+      return { x: v.modificada, y: v.ytmExacto, nombre: h.nombre };
+    });
+  if (chartPortTirDuracion) chartPortTirDuracion.destroy();
+  if (!puntos.length) return;
+  chartPortTirDuracion = new Chart(canvas.getContext('2d'), {
+    type: 'scatter',
+    data: { datasets: [{ label: 'Renta fija', data: puntos, backgroundColor: cssVar('--blue') }] },
+    options: {
+      scales: {
+        x: { title: { display: true, text: 'Duración modificada (años)', color: cssVar('--text3') } },
+        y: { title: { display: true, text: 'TIR exacta (%)', color: cssVar('--text3') } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => puntos[ctx.dataIndex].nombre + ': TIR ' + ctx.parsed.y.toFixed(2) + '%, Dur. ' + ctx.parsed.x.toFixed(2) } }
+      }
+    }
+  });
+}
+
+// ============ TANDA 3 — Regla de suavizado de aportes (solo lectura, no escribe nada) ============
+const TASA_OBJETIVO = 0.10;   // 10% del ingreso promedio reciente
+const BANDA_MIN = 0.10;       // piso: 10% del ingreso promedio (mismo % que ya destina a otra cuenta)
+const BANDA_MAX = 0.15;       // techo: 15% del ingreso promedio
+const VENTANA_MESES = 3;      // promedio de ingresos de los últimos 3 meses calendario
+
+// Lee EN VIVO el nodo ingresos/{uid}/{y}/{m} que ya existe en el mismo
+// proyecto Firebase de ZAR Finance -- mismo UID_AUTORIZADO, sin duplicar datos.
+async function ingresoPromedioReciente(){
+  const hoy = new Date();
+  let total = 0, meses = 0;
+  for (let i = 0; i < VENTANA_MESES; i++){
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0');
+    const snap = await db.ref(`ingresos/${UID_AUTORIZADO}/${y}/${m}`).once('value');
+    const entradas = Object.values(snap.val() || {});
+    const totalMes = entradas
+      .filter(e => (e.moneda || 'ARS') === 'ARS')
+      .reduce((s, e) => s + (Number(e.monto) || 0), 0);
+    total += totalMes;
+    meses++;
+  }
+  return meses > 0 ? total / meses : 0;
+}
+
+// Suma TODOS los aportes (los 4 buckets juntos) cuya fecha cae en el mes
+// calendario anterior -- reusa APORTES_LIVE y ORDEN_BUCKETS ya existentes.
+function aporteMesAnterior(){
+  const hoy = new Date();
+  const prev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+  const yPrev = prev.getFullYear(), mPrev = String(prev.getMonth() + 1).padStart(2, '0');
+  let total = 0;
+  ORDEN_BUCKETS.forEach(bucketId => {
+    Object.values(APORTES_LIVE[bucketId] || {}).forEach(a => {
+      if (a.fecha && a.fecha.startsWith(`${yPrev}-${mPrev}`)) total += Number(a.monto) || 0;
+    });
+  });
+  return total;
+}
+
+// Adaptación de la Yale Spending Rule: 80% del aporte del mes anterior + 20%
+// de la tasa objetivo aplicada al ingreso promedio, clampeado a la banda.
+async function calcularAporteSugerido(){
+  const ingresoProm = await ingresoPromedioReciente();
+  const objetivo = ingresoProm * TASA_OBJETIVO;
+  const anterior = aporteMesAnterior();
+  const base = anterior > 0 ? (0.8 * anterior + 0.2 * objetivo) : objetivo;
+  const piso = ingresoProm * BANDA_MIN;
+  const techo = ingresoProm * BANDA_MAX;
+  const sugeridoTotal = Math.min(Math.max(base, piso), techo);
+
+  // Reparto proporcional a la meta de cada bucket (mismos % que ya definen los buckets)
+  const metaTotal = ORDEN_BUCKETS.reduce((s, id) => s + (BUCKETS_LIVE[id] ? Number(BUCKETS_LIVE[id].metaARS) || 0 : 0), 0);
+  const porBucket = {};
+  ORDEN_BUCKETS.forEach(id => {
+    const metaBucket = BUCKETS_LIVE[id] ? Number(BUCKETS_LIVE[id].metaARS) || 0 : 0;
+    const peso = metaTotal > 0 ? metaBucket / metaTotal : 0;
+    porBucket[id] = sugeridoTotal * peso;
+  });
+
+  return { ingresoProm, sugeridoTotal, porBucket };
+}
+
+// ── UI de solo lectura: no escribe nada en Firebase, no carga aportes sola ──
+async function renderAporteSugerido(){
+  const body = $('sugerido-body');
+  if (!body || !db) return;
+  try{
+    const { ingresoProm, sugeridoTotal, porBucket } = await calcularAporteSugerido();
+    if (!ingresoProm){
+      body.innerHTML = '<div class="empty-note">Cargá ingresos en ZAR Finance para ver una sugerencia.</div>';
+      return;
+    }
+    const desglose = ORDEN_BUCKETS.map(id => {
+      const def = BUCKETS_LIVE[id];
+      if (!def) return '';
+      return `<div class="bucket-nums"><span>${def.nombre}</span><b>${fmt(porBucket[id]||0)}</b></div>`;
+    }).join('');
+    body.innerHTML = `
+      <div class="resumen-meta" style="margin-bottom:10px;">Ingreso promedio (solo ARS, últimos 3 meses): <b>${fmt(ingresoProm)}</b></div>
+      <div class="resumen-top" style="margin-bottom:10px;">
+        <div>
+          <div class="resumen-big" style="font-size:28px;">${fmt(sugeridoTotal)}</div>
+          <div class="resumen-meta">Aporte total sugerido este mes</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      ${desglose}
+      <div style="font-size:10px;color:var(--text3);margin-top:10px;">
+        Referencia calculada — no se carga sola. Usá el formulario de cada bucket para registrar el aporte real.
+      </div>
+    `;
+  } catch(e){
+    console.error('[ZAR Vanguard] Error calculando aporte sugerido:', e);
+    body.innerHTML = '<div class="empty-note">No se pudo calcular la sugerencia.</div>';
+  }
 }
 </script>
 </body>
