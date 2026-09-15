@@ -1,0 +1,45 @@
+# ═══════════════════════════════════════════════
+# .gitignore — ZAR Vanguard Capital Partners
+# Repo PÚBLICO (GitHub Pages) — esto NUNCA se sube,
+# aunque corras `git add .` por accidente.
+# ═══════════════════════════════════════════════
+
+# ── Capturas de estados de cuenta / posiciones de Cocos Capital ──
+# (para probar la extracción por visión, no deben quedar públicas)
+*cocos*.png
+*cocos*.jpg
+*captura*.png
+*captura*.jpg
+*estado*cuenta*
+screenshot*.png
+screenshot*.jpg
+
+# ── Secretos ──
+*contr*eña*
+*contr*ena*
+*contrase*
+*contrsen*
+*password*
+*passwd*
+*credencial*
+*.key
+*.pem
+.env
+.env.*
+secrets.*
+*token*.txt
+
+# ── Basura de macOS ──
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Backups y copias ──
+*backup*
+*_old.*
+*_viejo.*
+*copia*
+*.bak
+index-*.html

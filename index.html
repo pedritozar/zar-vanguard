@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#F6F8FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)">
+<title>ZAR Vanguard Capital Partners</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- ══ FIREBASE (SDK compat v9, mismo patrón que ZAR Finance/ZAR Tactical Ledger) ══ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  /* ── Paleta clara = paleta REAL de ZAR Finance (copiada, no inventada) ── */
+  --bg:#F6F8FA;
+  --bg2:#F1F5F9;
+  --green:#10B981;
+  --green-l:#ECFDF5;
+  --blue:#0066FF;
+  --blue-l:#EEF4FF;
+  --amber:#F59E0B;
+  --amber-l:#FFFBEB;
+  --red:#EF4444;
+  --red-l:#FEF2F2;
+  --txt:#0C1117;
+  --text2:#4A5568;
+  --text3:#94A3B8;
+  --border:#E8ECF0;
+  --border2:#F1F5F9;
+  --white:#FFFFFF;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --r:12px;--r2:8px;
+  --font:'DM Sans',-apple-system,sans-serif;
+  --mono:'DM Mono','SF Mono',monospace;
+}
+/* ── Paleta oscura — se activa sola según el modo del sistema (Mac claro/oscuro
+   por hora del día u override manual). No es la paleta que inventó el Reactor
+   por default: acá pasa a ser el modo oscuro real, condicionado. ── */
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117;
+    --bg2:#161b22;
+    --green:#238636;
+    --green-l:rgba(35,134,54,.15);
+    --blue:#58a6ff;
+    --blue-l:rgba(88,166,255,.15);
+    --amber:#d29922;
+    --amber-l:rgba(210,153,34,.15);
+    --red:#f85149;
+    --red-l:rgba(248,81,73,.15);
+    --txt:#e6edf3;
+    --text2:#9da7b3;
+    --text3:#6e7681;
+    --border:#30363d;
+    --border2:#21262d;
+    --white:#161b22;
+    --sh:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
+  }
+}
+html{height:100%;background:var(--bg);}
+body{font-family:var(--font);color:var(--txt);font-size:14px;line-height:1.5;min-height:100%;background:var(--bg);}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* ── Login ── */
+#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 0%, #161b22 0%, #0d1117 70%);z-index:500;}
+.login-card{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:38px 34px;width:340px;text-align:center;box-shadow:var(--sh);}
+.login-brand{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:4px;}
+.login-brand b{color:var(--blue);}
+.login-sub{font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:22px;}
+.login-desc{font-size:12px;color:var(--text2);margin-bottom:22px;line-height:1.6;}
+.login-btn{width:100%;padding:13px;border-radius:11px;border:none;font-size:14px;font-weight:700;color:#fff;background:var(--blue);cursor:pointer;font-family:var(--font);transition:all .2s;}
+.login-btn:hover{filter:brightness(1.1);}
+.login-btn:active{transform:scale(.98);}
+#login-status{font-size:11px;color:var(--text3);margin-top:14px;min-height:16px;line-height:1.5;}
+
+/* ── App shell ── */
+#app{display:none;flex-direction:column;height:100vh;overflow:hidden;}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
+.brand{font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.brand b{color:var(--blue);}
+.brand small{display:block;font-size:9px;letter-spacing:1px;color:var(--text3);font-weight:500;margin-top:2px;text-transform:none;}
+.hdr-r{display:flex;align-items:center;gap:10px;}
+#auth-email{font-size:11px;color:var(--text3);}
+.hdr-btn{padding:6px 13px;border-radius:var(--r2);border:1px solid var(--border);background:var(--bg2);font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .15s;}
+.hdr-btn:hover{background:var(--border);border-color:var(--blue);color:var(--blue);}
+.hdr-btn.pri{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600;}
+.hdr-btn.pri:hover{filter:brightness(1.1);}
+
+.body{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px;max-width:1100px;margin:0 auto;width:100%;}
+
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--sh);}
+.card-ttl{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:14px;}
+
+/* ── Resumen agregado ── */
+.resumen-top{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:14px;}
+.resumen-big{font-size:40px;font-weight:700;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;color:var(--txt);}
+.resumen-meta{font-size:12px;color:var(--text3);}
+.resumen-pct{font-size:22px;font-weight:700;color:var(--blue);}
+
+.dti-bg{height:9px;background:var(--bg2);border-radius:5px;overflow:hidden;margin:6px 0 4px;border:1px solid var(--border);}
+.dti-fill{height:100%;border-radius:5px;transition:width .5s ease;background:var(--blue);}
+
+/* ── Buckets grid ── */
+.buckets-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+.bucket-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh);display:flex;flex-direction:column;gap:10px;}
+.bucket-nombre{font-size:14px;font-weight:700;color:var(--txt);}
+.bucket-nums{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--text2);}
+.bucket-nums b{font-size:16px;color:var(--green);}
+.bucket-pct{font-size:11px;font-weight:600;color:var(--blue);text-align:right;}
+
+.sim-field{display:flex;flex-direction:column;gap:4px;}
+.sim-lbl{font-size:9px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;color:var(--text3);}
+.sim-input{padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r2);font-size:12px;font-family:var(--font);color:var(--txt);background:var(--bg2);outline:none;transition:border-color .15s;width:100%;}
+.sim-input:focus{border-color:var(--blue);}
+.sim-input::placeholder{color:var(--text3);}
+
+.aporte-form-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:4px;}
+.aporte-form-row .sim-field{flex:1;min-width:110px;}
+.aporte-edit-note{font-size:10px;color:var(--blue);margin-top:-4px;}
+
+.divider{height:1px;background:var(--border2);margin:4px 0;}
+
+.aportes-list{display:flex;flex-direction:column;gap:0;max-height:150px;overflow-y:auto;font-size:12px;}
+.aporte-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);}
+.aporte-row:last-child{border:none;}
+.aporte-row span.fmoney{color:var(--text2);}
+.aporte-actions button{border:none;background:none;cursor:pointer;font-size:12px;margin-left:6px;}
+.aporte-actions .edit{color:var(--blue);}
+.aporte-actions .del{color:var(--red);}
+.empty-note{font-size:11px;color:var(--text3);}
+
+.footer-note{font-size:10px;color:var(--text3);text-align:center;padding:10px 0 4px;}
+
+/* ============ TANDA 2 — Tab bar, panel de API Key y componentes de Portafolio ============ */
+.tabbar{display:flex;gap:4px;padding:10px 24px 0;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab-btn{padding:10px 16px;border:none;background:none;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;font-family:var(--font);border-bottom:2px solid transparent;transition:all .15s;}
+.tab-btn:hover{color:var(--txt);}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+#apikey-panel{display:none;position:fixed;top:60px;right:24px;background:var(--white);border:1px solid var(--border);border-radius:var(--r2);padding:14px;box-shadow:var(--sh);z-index:400;width:260px;}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══════════════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">ZAR <b>Vanguard</b></div>
+    <div class="login-sub">Capital Partners</div>
+    <div class="login-desc">
+      Fondo de Emergencia — acceso privado.<br>
+      Login obligatorio con la cuenta de Google autorizada.
+    </div>
+    <button class="login-btn" onclick="loginGoogle()">🔑 Ingresar con Google</button>
+    <div id="login-status"></div>
+  </div>
+</div>
+
+<!-- ══ APP ═════════════════════════════════════════════════════════════════ -->
+<div id="app">
+  <header class="hdr">
+    <div class="brand">ZAR <b>Vanguard</b><small>Capital Partners</small></div>
+    <div class="hdr-r">
+      <span id="auth-email"></span>
+      <button class="hdr-btn" onclick="toggleApiKeyPanel()">🔑 API Key</button>
+      <button class="hdr-btn" onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <!-- ── Panel BYOK: API Key de Anthropic guardada en localStorage ── -->
+  <div id="apikey-panel">
+    <div class="sim-lbl" style="margin-bottom:6px;">API Key de Anthropic (Claude)</div>
+    <input type="password" class="sim-input" id="apikey-input" placeholder="sk-ant-...">
+    <button class="hdr-btn pri" style="margin-top:8px;width:100%;" onclick="guardarApiKey()">Guardar</button>
+    <div style="font-size:10px;color:var(--text3);margin-top:8px;">Se guarda solo en este navegador (localStorage), nunca en Firebase.</div>
+  </div>
+
+  <!-- ── Tab bar: Fondo de Emergencia | Portafolio ── -->
+  <div class="tabbar">
+    <button class="tab-btn active" id="tab-fe" onclick="cambiarTab('fe')">Fondo de Emergencia</button>
+    <button class="tab-btn" id="tab-port" onclick="cambiarTab('portafolio')">Portafolio</button>
+  </div>
+
+  <div class="body" id="fe-body">
+
+    <!-- Resumen agregado -->
+    <div class="card">
+      <div class="card-ttl">💰 Fondo de Emergencia — total acumulado</div>
+      <div class="resumen-top">
+        <div>
+          <div class="resumen-big" id="res-total">$0</div>
+          <div class="resumen-meta">Meta total: <span id="res-meta">$3.600.000</span></div>
+        </div>
+        <div class="resumen-pct" id="res-pct">0%</div>
+      </div>
+      <div class="dti-bg"><div class="dti-fill" id="res-bar" style="width:0%;"></div></div>
+      <div style="font-size:10px;color:var(--text3);" id="res-nota">Cargando datos…</div>
+    </div>
+
+    <!-- 4 buckets -->
+    <div class="buckets-grid" id="buckets-grid">
+      <div class="empty-note">Cargando buckets…</div>
+    </div>
+
+    <div class="footer-note">
+      ZAR Vanguard Capital Partners — Fondo de Emergencia + sub-buckets. Glide path, suavizado
+      de aportes y directorio de cargos se suman en tandas futuras sin reescribir esta base.
+    </div>
+
+  </div>
+
+  <!-- ============ TANDA 2 — Sección Portafolio (Cocos Capital) ============ -->
+  <div class="body" id="portafolio-body" style="display:none;">
+
+    <!-- Resumen agregado del portafolio -->
+    <div class="card">
+      <div class="card-ttl">📊 Portafolio — valor total de mercado</div>
+      <div class="resumen-top">
+        <div>
+          <div class="resumen-big" id="port-total">$0</div>
+          <div class="resumen-meta">Renta fija: <span id="port-rf-pct">0%</span> · Variable: <span id="port-var-pct">0%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extracción por visión -->
+    <div class="card">
+      <div class="card-ttl">📷 Extraer tenencias de una captura (Cocos Capital)</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">
+        Subí una captura de pantalla de tu posición en Cocos Capital. La IA propone las tenencias
+        detectadas — vos las revisás y confirmás individualmente antes de guardar nada.
+      </div>
+      <input type="file" accept="image/*" class="sim-input" id="captura-input" onchange="manejarCaptura(event)">
+      <div id="captura-status" style="font-size:11px;color:var(--text3);margin-top:8px;"></div>
+    </div>
+
+    <!-- Staging: revisión humana obligatoria antes de guardar -->
+    <div class="card" id="staging-card" style="display:none;">
+      <div class="card-ttl">🕵️ Revisión antes de guardar</div>
+      <div id="staging-list"></div>
+    </div>
+
+    <!-- Alta manual -->
+    <div class="card">
+      <div class="card-ttl">➕ Agregar tenencia manual</div>
+      <div class="sim-field" style="margin-bottom:10px;max-width:220px;">
+        <span class="sim-lbl">Tipo de instrumento</span>
+        <select class="sim-input" id="form-tipo" onchange="toggleFormTipo()">
+          <option value="rentaFija">Renta fija</option>
+          <option value="variable">Variable</option>
+        </select>
+      </div>
+      <div class="aporte-form-row" id="form-rentaFija">
+        <div class="sim-field"><span class="sim-lbl">Nombre</span><input class="sim-input" id="fh-nombre" placeholder="Ej: Bonar 2038"></div>
+        <div class="sim-field"><span class="sim-lbl">Moneda</span><input class="sim-input" id="fh-moneda" placeholder="USD"></div>
+        <div class="sim-field"><span class="sim-lbl">Nominal total</span><input class="sim-input" type="number" id="fh-nominal" placeholder="1000"></div>
+        <div class="sim-field"><span class="sim-lbl">Cupón anual %</span><input class="sim-input" type="number" id="fh-cupon" placeholder="7.5"></div>
+        <div class="sim-field"><span class="sim-lbl">Frecuencia cupón/año</span><input class="sim-input" type="number" id="fh-frecuencia" placeholder="2"></div>
+        <div class="sim-field"><span class="sim-lbl">Precio total actual</span><input class="sim-input" type="number" id="fh-precio" placeholder="950"></div>
+        <div class="sim-field"><span class="sim-lbl">Fecha de vencimiento</span><input class="sim-input" type="date" id="fh-vencimiento"></div>
+        <div class="sim-field"><span class="sim-lbl">Tasa de referencia % (opc.)</span><input class="sim-input" type="number" id="fh-reftasa" placeholder="4.5"></div>
+        <div class="sim-field"><span class="sim-lbl">Fecha de compra</span><input class="sim-input" type="date" id="fh-fechacompra"></div>
+        <div class="sim-field"><span class="sim-lbl">Notas</span><input class="sim-input" id="fh-notas" placeholder="Opcional"></div>
+      </div>
+      <div class="aporte-form-row" id="form-variable" style="display:none;">
+        <div class="sim-field"><span class="sim-lbl">Nombre / Ticker</span><input class="sim-input" id="fv-nombre" placeholder="Ej: AAPL"></div>
+        <div class="sim-field"><span class="sim-lbl">Moneda</span><input class="sim-input" id="fv-moneda" placeholder="USD"></div>
+        <div class="sim-field"><span class="sim-lbl">Cantidad</span><input class="sim-input" type="number" id="fv-cantidad" placeholder="10"></div>
+        <div class="sim-field"><span class="sim-lbl">Precio último (unidad)</span><input class="sim-input" type="number" id="fv-precio" placeholder="230.5"></div>
+        <div class="sim-field"><span class="sim-lbl">Precio de compra (opc.)</span><input class="sim-input" type="number" id="fv-preciocompra" placeholder="200"></div>
+        <div class="sim-field"><span class="sim-lbl">Fecha de compra</span><input class="sim-input" type="date" id="fv-fechacompra"></div>
+        <div class="sim-field"><span class="sim-lbl">Notas</span><input class="sim-input" id="fv-notas" placeholder="Opcional"></div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="hdr-btn pri" onclick="guardarHoldingManual()">Guardar tenencia</button>
+      </div>
+    </div>
+
+    <!-- Lista de holdings existentes -->
+    <div class="buckets-grid" id="holdings-grid">
+      <div class="empty-note">Cargando tenencias…</div>
+    </div>
+
+    <div class="footer-note">
+      ZAR Vanguard Capital Partners — Tanda 2 (Portafolio Cocos Capital: alta manual + extracción por
+      visión con revisión humana obligatoria, motor de valuación de renta fija). Glide path, suavizado
+      de aportes y directorio de cargos se suman en tandas futuras sin reescribir esta base.
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ══ APP LOGIC ══════════════════════════════════════════════════════════ -->
+<script>
+// ============ CONFIG FIREBASE ============
+// Mismo proyecto que ZAR Finance -- key hardcodeada directo, mismo criterio que
+// ZAR Finance real (la key de cliente de Firebase no es secreta por si sola,
+// la seguridad la dan las reglas de la DB + el chequeo de UID_AUTORIZADO abajo).
+const FB_CFG = {
+  apiKey:            "AIzaSyBDkqXKdtFRs1On4kw0lP3Bk897esslmoM",
+  authDomain:        "zarfinance.firebaseapp.com",
+  databaseURL:       "https://zarfinance-default-rtdb.firebaseio.com",
+  projectId:         "zarfinance",
+  storageBucket:     "zarfinance.firebasestorage.app",
+  messagingSenderId: "210001894365",
+  appId:             "1:210001894365:web:1d9b27f0c3340ed71ef434"
+};
+
+// ============ CONSTANTES DE NEGOCIO ============
+// Mismo UID de datos que ZAR Finance (mismo proyecto Firebase, cuenta
+// pzacarias18@gmail.com) -- las reglas de la DB exigen auth.uid == este UID
+// para poder escribir. Sin auth anónima: si no coincide, se bloquea el acceso.
+const UID_AUTORIZADO = 'JsW7CjDObEhn3DoFkwzuJUGLhrB3';
+// clienteId hardcodeado por ahora -- leído siempre de esta constante única para
+// poder sumar un segundo cliente después sin reescribir lógica (spec sección 6).
+const CLIENTE_ID = 'pedro';
+function pathBuckets(){ return `clientes/${CLIENTE_ID}/vanguard/fondoEmergencia/buckets`; }
+function pathAportes(bucketId){ return `${pathBuckets()}/${bucketId}/aportes`; }
+
+// Seed inicial (una sola vez, sólo si el nodo no existe todavía) -- mismo
+// patrón que DEUDAS_ESTADO_SEED en ZAR Finance. Suma de metas = $3.600.000.
+const BUCKETS_SEED = {
+  desempleo:          { nombre: 'Desempleo',                          metaARS: 1800000 },
+  accidentesFisicos:  { nombre: 'Accidentes físicos',                 metaARS: 720000  },
+  multasLegales:       { nombre: 'Multas / imprevistos legales',       metaARS: 540000  },
+  otros:               { nombre: 'Otros',                              metaARS: 540000  },
+};
+const ORDEN_BUCKETS = ['desempleo','accidentesFisicos','multasLegales','otros'];
+
+// ============ ESTADO ============
+let db = null, auth = null;
+let BUCKETS_LIVE = {};          // pathBuckets() -> { id: {nombre, metaARS} }
+let APORTES_LIVE = {};          // { bucketId: { id: {monto,fecha,timestamp} } }
+let EDITANDO = {};               // { bucketId: aporteId | null }
+let seedIntentado = false;
+const aportesListeningSet = new Set();
+
+// ============ UTIL ============
+const $ = id => document.getElementById(id);
+const fmt = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-AR');
+const fD = s => s ? s.split('-').reverse().join('/') : '';
+const hoyISO = () => new Date().toISOString().split('T')[0];
+
+// ============ FIREBASE INIT CON RETRY ============
+function initFirebaseWithRetry(retries = 10, delayMs = 300){
+  return new Promise((resolve, reject) => {
+    function attempt(n){
+      try{
+        if (typeof firebase === 'undefined') throw new Error('SDK de Firebase no cargó todavía');
+        if (!firebase.apps.length) firebase.initializeApp(FB_CFG);
+        db = firebase.database();
+        auth = firebase.auth();
+        resolve();
+      } catch(e){
+        if (n <= 0){ reject(e); return; }
+        setTimeout(() => attempt(n - 1), delayMs);
+      }
+    }
+    attempt(retries);
+  });
+}
+
+// ============ AUTH ============
+function loginGoogle(){
+  const st = $('login-status');
+  if (!auth){ if (st) st.textContent = 'Firebase todavía no está listo, esperá un segundo…'; return; }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  if (st) st.textContent = 'Abriendo ventana de Google…';
+  auth.signInWithPopup(provider).catch(err => {
+    console.error('[ZAR Vanguard] Error de login Google:', err);
+    if (st) st.textContent = '⚠️ ' + err.message;
+  });
+}
+function logout(){
+  if (auth) auth.signOut();
+}
+function showLogin(msg){
+  $('login-screen').style.display = 'flex';
+  $('app').style.display = 'none';
+  if (msg) $('login-status').textContent = msg;
+}
+function showApp(user){
+  $('login-screen').style.display = 'none';
+  $('app').style.display = 'flex';
+  const em = $('auth-email'); if (em) em.textContent = '✅ ' + (user.email || 'Google conectado');
+}
+
+// ============ SEED (una sola vez si el nodo no existe) ============
+function manejarBucketsLive(d){
+  BUCKETS_LIVE = d || {};
+  if (!seedIntentado){
+    seedIntentado = true;
+    if (!Object.keys(BUCKETS_LIVE).length){
+      Object.entries(BUCKETS_SEED).forEach(([id, v]) => {
+        db.ref(`${pathBuckets()}/${id}`).set(v).catch(err => console.error('[ZAR Vanguard] Error sembrando bucket', id, err));
+      });
+      return; // el propio set() dispara onValue de nuevo con los datos ya sembrados
+    }
+  }
+  ensureAportesListeners();
+  renderTodo();
+}
+function ensureAportesListeners(){
+  ORDEN_BUCKETS.forEach(bucketId => {
+    if (!BUCKETS_LIVE[bucketId] || aportesListeningSet.has(bucketId)) return;
+    aportesListeningSet.add(bucketId);
+    db.ref(pathAportes(bucketId)).on('value', snap => {
+      APORTES_LIVE[bucketId] = snap.val() || {};
+      renderTodo();
+    });
+  });
+}
+
+// ============ ACCIONES DE APORTES ============
+async function agregarAporte(bucketId){
+  const montoEl = $('ap-monto-' + bucketId), fechaEl = $('ap-fecha-' + bucketId);
+  const monto = parseFloat(montoEl.value);
+  const fecha = fechaEl.value || hoyISO();
+  if (!monto || monto <= 0){ alert('Cargá un monto válido.'); return; }
+  try {
+    const editId = EDITANDO[bucketId];
+    if (editId){
+      await db.ref(`${pathAportes(bucketId)}/${editId}`).set({
+        monto: Number(monto), fecha, timestamp: firebase.database.ServerValue.TIMESTAMP
+      });
+      cancelarEdicion(bucketId);
+    } else {
+      const newRef = db.ref(pathAportes(bucketId)).push();
+      await newRef.set({
+        monto: Number(monto), fecha, timestamp: firebase.database.ServerValue.TIMESTAMP
+      });
+      montoEl.value = '';
+    }
+  } catch(e){
+    console.error('[ZAR Vanguard] Error guardando aporte:', e);
+    alert('No se pudo guardar el aporte: ' + e.message);
+  }
+}
+function editarAporte(bucketId, aporteId, monto, fecha){
+  EDITANDO[bucketId] = aporteId;
+  const montoEl = $('ap-monto-' + bucketId), fechaEl = $('ap-fecha-' + bucketId);
+  if (montoEl) montoEl.value = monto;
+  if (fechaEl) fechaEl.value = fecha;
+  renderTodo();
+}
+function cancelarEdicion(bucketId){
+  EDITANDO[bucketId] = null;
+  const montoEl = $('ap-monto-' + bucketId), fechaEl = $('ap-fecha-' + bucketId);
+  if (montoEl) montoEl.value = '';
+  if (fechaEl) fechaEl.value = '';
+  renderTodo();
+}
+async function eliminarAporte(bucketId, aporteId){
+  if (!confirm('¿Eliminar este aporte del historial?')) return;
+  try {
+    if (EDITANDO[bucketId] === aporteId) cancelarEdicion(bucketId);
+    await db.ref(`${pathAportes(bucketId)}/${aporteId}`).remove();
+  } catch(e){
+    console.error('[ZAR Vanguard] Error eliminando aporte:', e);
+    alert('No se pudo eliminar el aporte: ' + e.message);
+  }
+}
+
+// ============ RENDER ============
+function acumuladoBucket(bucketId){
+  const aportes = APORTES_LIVE[bucketId] || {};
+  return Object.values(aportes).reduce((s, a) => s + (parseFloat(a.monto) || 0), 0);
+}
+function renderResumen(){
+  const buckets = ORDEN_BUCKETS.map(id => BUCKETS_LIVE[id]).filter(Boolean);
+  if (!buckets.length){
+    $('res-nota').textContent = 'Cargando buckets…';
+    return;
+  }
+  const metaTotal = ORDEN_BUCKETS.reduce((s,id) => s + (BUCKETS_LIVE[id] ? Number(BUCKETS_LIVE[id].metaARS)||0 : 0), 0);
+  const acumTotal = ORDEN_BUCKETS.reduce((s,id) => s + acumuladoBucket(id), 0);
+  const pct = metaTotal > 0 ? (acumTotal / metaTotal * 100) : 0;
+  $('res-total').textContent = fmt(acumTotal);
+  $('res-meta').textContent = fmt(metaTotal);
+  $('res-pct').textContent = pct.toFixed(1) + '%';
+  const bar = $('res-bar');
+  if (bar){
+    bar.style.width = Math.min(pct, 100) + '%';
+    bar.style.background = pct >= 100 ? 'var(--green)' : (pct >= 50 ? 'var(--blue)' : 'var(--amber)');
+  }
+  $('res-nota').textContent = pct >= 100
+    ? '🏆 Meta del Fondo de Emergencia cubierta.'
+    : `Faltan ${fmt(Math.max(metaTotal - acumTotal, 0))} para completar el fondo.`;
+}
+function renderBucketCard(bucketId){
+  const def = BUCKETS_LIVE[bucketId];
+  if (!def) return '';
+  const meta = Number(def.metaARS) || 0;
+  const acumulado = acumuladoBucket(bucketId);
+  const pct = meta > 0 ? (acumulado / meta * 100) : 0;
+  const aportesArr = Object.entries(APORTES_LIVE[bucketId] || {})
+    .map(([id, a]) => ({ id, monto: parseFloat(a.monto)||0, fecha: a.fecha }))
+    .sort((a,b) => b.fecha.localeCompare(a.fecha));
+  const editId = EDITANDO[bucketId];
+
+  const listaHtml = !aportesArr.length
+    ? '<div class="empty-note">Sin aportes cargados todavía.</div>'
+    : `<div class="aportes-list">${aportesArr.map(a => `
+        <div class="aporte-row">
+          <span class="fmoney">${fD(a.fecha)} — ${fmt(a.monto)}</span>
+          <span class="aporte-actions">
+            <button class="edit" title="Editar aporte" onclick="editarAporte('${bucketId}','${a.id}',${a.monto},'${a.fecha}')">✏️</button>
+            <button class="del" title="Eliminar aporte" onclick="eliminarAporte('${bucketId}','${a.id}')">✕</button>
+          </span>
+        </div>`).join('')}</div>`;
+
+  const editNoteHtml = editId
+    ? `<div class="aporte-edit-note">Editando aporte del ${fD((aportesArr.find(a=>a.id===editId)||{}).fecha||'')} — <a href="javascript:void(0)" onclick="cancelarEdicion('${bucketId}')" style="color:var(--blue);">cancelar</a></div>`
+    : '';
+
+  return `
+  <div class="bucket-card">
+    <div class="bucket-nombre">${def.nombre}</div>
+    <div class="bucket-nums"><span>Meta: ${fmt(meta)}</span><b>${fmt(acumulado)}</b></div>
+    <div class="dti-bg"><div class="dti-fill" style="width:${Math.min(pct,100)}%;background:${pct>=100?'var(--green)':'var(--blue)'};"></div></div>
+    <div class="bucket-pct">${pct.toFixed(1)}% de la meta</div>
+    <div class="divider"></div>
+    ${editNoteHtml}
+    <div class="aporte-form-row">
+      <div class="sim-field">
+        <span class="sim-lbl">Monto ARS</span>
+        <input class="sim-input" type="number" id="ap-monto-${bucketId}" placeholder="Ej: 50000">
+      </div>
+      <div class="sim-field">
+        <span class="sim-lbl">Fecha</span>
+        <input class="sim-input" type="date" id="ap-fecha-${bucketId}" value="${hoyISO()}">
+      </div>
+      <button class="hdr-btn pri" onclick="agregarAporte('${bucketId}')">${editId ? 'Guardar cambios' : '+ Aporte'}</button>
+    </div>
+    <div class="divider"></div>
+    ${listaHtml}
+  </div>`;
+}
+function renderBuckets(){
+  const grid = $('buckets-grid');
+  if (!grid) return;
+  const disponibles = ORDEN_BUCKETS.filter(id => BUCKETS_LIVE[id]);
+  if (!disponibles.length){
+    grid.innerHTML = '<div class="empty-note">Cargando buckets…</div>';
+    return;
+  }
+  grid.innerHTML = disponibles.map(id => renderBucketCard(id)).join('');
+}
+function renderTodo(){
+  renderResumen();
+  renderBuckets();
+}
+
+// ============ ARRANQUE ============
+document.addEventListener('DOMContentLoaded', () => {
+  initFirebaseWithRetry(10, 300).then(() => {
+    auth.onAuthStateChanged(user => {
+      if (user && user.uid === UID_AUTORIZADO){
+        showApp(user);
+        db.ref(pathBuckets()).on('value', snap => manejarBucketsLive(snap.val()));
+        // ── Tanda 2: listener del portafolio, en paralelo al fondo de emergencia ──
+        db.ref(pathHoldings()).on('value', snap => {
+          HOLDINGS_LIVE = snap.val() || {};
+          renderPortafolio();
+        });
+      } else if (user){
+        showLogin('⚠️ Esta cuenta de Google no tiene permiso de acceso a ZAR Vanguard.');
+      } else {
+        showLogin('');
+      }
+    });
+  }).catch(err => {
+    console.error('[ZAR Vanguard] No se pudo inicializar Firebase tras 10 reintentos:', err);
+    showLogin('⚠️ No se pudo conectar con Firebase. Revisá tu conexión y recargá la página.');
+  });
+});
+
+// ============ TANDA 2 — PORTAFOLIO (Cocos Capital) ============
+// clienteId es la MISMA constante CLIENTE_ID ya definida arriba -- sin crear
+// una segunda constante. Sub-nodo separado, no colisiona con fondoEmergencia.
+function pathHoldings(){ return `clientes/${CLIENTE_ID}/vanguard/portafolio/holdings`; }
+
+// ── Estado del portafolio ──
+let HOLDINGS_LIVE = {};      // { holdingId: {...} }
+let STAGING_HOLDINGS = [];   // tenencias extraídas por visión, pendientes de confirmar
+
+// ============ TAB BAR ============
+function cambiarTab(tab){
+  const feBody = $('fe-body'), portBody = $('portafolio-body');
+  const tabFe = $('tab-fe'), tabPort = $('tab-port');
+  if (tab === 'fe'){
+    feBody.style.display = 'flex';
+    portBody.style.display = 'none';
+    tabFe.classList.add('active');
+    tabPort.classList.remove('active');
+  } else {
+    feBody.style.display = 'none';
+    portBody.style.display = 'flex';
+    tabFe.classList.remove('active');
+    tabPort.classList.add('active');
+  }
+}
+
+// ============ API KEY (BYOK, localStorage, mismo criterio que otros tutores) ============
+function toggleApiKeyPanel(){
+  const p = $('apikey-panel');
+  if (!p) return;
+  if (p.style.display === 'none' || !p.style.display){
+    p.style.display = 'block';
+    $('apikey-input').value = localStorage.getItem('vanguardApiKey') || '';
+  } else {
+    p.style.display = 'none';
+  }
+}
+function guardarApiKey(){
+  const val = $('apikey-input').value.trim();
+  if (!val){ alert('Ingresá una API key válida.'); return; }
+  localStorage.setItem('vanguardApiKey', val);
+  $('apikey-panel').style.display = 'none';
+  alert('API Key guardada localmente en este navegador.');
+}
+
+// ============ MOTOR DE VALUACIÓN DE RENTA FIJA — copiado tal cual del spec ============
+// (adaptado de renta_fija_tutor.html) -- NO reinventar el método, NO cambiar la
+// búsqueda binaria por otra cosa, NO aproximar distinto.
+function calcularValuacionRentaFija(h){
+  // h = holding con tipo 'rentaFija'
+  const nominal = Number(h.nominal) || 0;
+  const precio  = Number(h.precio) || 0;
+  const cuponAnual = Number(h.cuponAnual) || 0;
+  const frecuencia = Number(h.frecuenciaCupon) || 1;
+  const hoy = new Date();
+  const venc = new Date(h.fechaVencimiento);
+  const anios = Math.max((venc - hoy) / (1000*60*60*24*365.25), 0.01);
+
+  const cuponPeriodo = (cuponAnual/100 * nominal) / frecuencia;
+  const nPeriodos = anios * frecuencia;
+
+  // YTM aproximado (fórmula rápida estándar)
+  const ytmAprox = ((cuponPeriodo*frecuencia) + (nominal - precio)/anios) / ((nominal+precio)/2) * 100;
+
+  // YTM exacto por búsqueda binaria sobre la tasa por período
+  function precioDado(ytmPeriodo){
+    let vp = 0;
+    for(let t=1;t<=nPeriodos;t++){ vp += cuponPeriodo / Math.pow(1+ytmPeriodo, t); }
+    vp += nominal / Math.pow(1+ytmPeriodo, nPeriodos);
+    return vp;
+  }
+  let lo = 0.00001, hi = 1;
+  for(let i=0;i<100;i++){
+    const mid = (lo+hi)/2;
+    const p = precioDado(mid);
+    if(p > precio) lo = mid; else hi = mid;
+  }
+  const ytmPeriodo = (lo+hi)/2;
+  const ytmExacto = ytmPeriodo * frecuencia * 100;
+
+  // Macaulay / Modified Duration
+  let sumaPonderada = 0;
+  for(let t=1;t<=nPeriodos;t++){
+    const flujo = (t === nPeriodos) ? cuponPeriodo + nominal : cuponPeriodo;
+    sumaPonderada += (t/frecuencia) * flujo / Math.pow(1+ytmPeriodo, t);
+  }
+  const macaulay = sumaPonderada / precio;
+  const modificada = macaulay / (1 + ytmPeriodo);
+
+  // Convexidad aproximada
+  let sumaConvexidad = 0;
+  for(let t=1;t<=nPeriodos;t++){
+    const flujo = (t === nPeriodos) ? cuponPeriodo + nominal : cuponPeriodo;
+    sumaConvexidad += flujo * t * (t+1) / Math.pow(1+ytmPeriodo, t+2);
+  }
+  const convexidad = sumaConvexidad / (precio * Math.pow(frecuencia,2));
+
+  const spread = h.refTasa != null ? (ytmExacto - Number(h.refTasa)) : null;
+
+  return { ytmExacto, ytmAprox, macaulay, modificada, convexidad, spread, anios };
+}
+
+// ============ EXTRACCIÓN POR VISIÓN — patrón exacto (adaptado de valuacion_tutor.html) ============
+function fileToBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function extraerHoldingsDeCaptura(file){
+  const apiKey = localStorage.getItem('vanguardApiKey') || '';
+  if(!apiKey){ alert('Falta la API Key de Anthropic. Guardala primero con el botón 🔑.'); return; }
+  const base64 = await fileToBase64(file);
+  const mediaType = file.type && file.type.startsWith('image/') ? file.type : 'image/png';
+
+  const systemPrompt = `Analizá esta captura de un estado de cuenta o posición de Cocos Capital.
+Identificá cada instrumento financiero visible. Para cada uno, clasificalo como "rentaFija"
+(bonos, ONs, letras) o "variable" (acciones, CEDEARs, ETFs). Extraé SOLO los campos que puedas
+leer con precisión de la imagen -- si un campo no está legible o no aparece, ponelo en null,
+NUNCA inventes un número. Devolvé ÚNICAMENTE un JSON válido, sin texto antes ni después, con
+este esquema exacto:
+{"holdings":[{"tipo":"rentaFija|variable","nombre":string|null,"moneda":string|null,
+"nominal":number|null,"cuponAnual":number|null,"frecuenciaCupon":number|null,"precio":number|null,
+"fechaVencimiento":"YYYY-MM-DD"|null,"cantidad":number|null,"precioUltimo":number|null}]}`;
+
+  const messages = [{
+    role:'user',
+    content:[
+      { type:'image', source:{ type:'base64', media_type: mediaType, data: base64 } },
+      { type:'text', text:'Extraé las tenencias de esta captura según el esquema del system prompt.' }
+    ]
+  }];
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-5', // fijo, visión siempre con Sonnet 5, sin selector
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages
+    })
+  });
+  if(!res.ok){ throw new Error('HTTP '+res.status+': '+await res.text()); }
+  const data = await res.json();
+  const textBlock = (data.content||[]).find(b=>b.type==='text');
+  if(!textBlock){ throw new Error('Respuesta sin contenido de texto.'); }
+  return JSON.parse(textBlock.text); // { holdings: [...] }
+}
+
+async function manejarCaptura(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  const statusEl = $('captura-status');
+  statusEl.textContent = '⏳ Analizando captura con IA…';
+  try{
+    const resultado = await extraerHoldingsDeCaptura(file);
+    const holdings = (resultado && resultado.holdings) || [];
+    if (!holdings.length){
+      statusEl.textContent = '⚠️ No se detectaron tenencias en la imagen.';
+      return;
+    }
+    holdings.forEach(h => {
+      STAGING_HOLDINGS.push({
+        _stagingId: 'stg_' + Math.random().toString(36).slice(2),
+        tipo: h.tipo === 'variable' ? 'variable' : 'rentaFija',
+        nombre: h.nombre || '',
+        moneda: h.moneda || '',
+        nominal: h.nominal != null ? h.nominal : '',
+        cuponAnual: h.cuponAnual != null ? h.cuponAnual : '',
+        frecuenciaCupon: h.frecuenciaCupon != null ? h.frecuenciaCupon : '',
+        precio: h.precio != null ? h.precio : '',
+        fechaVencimiento: h.fechaVencimiento || '',
+        cantidad: h.cantidad != null ? h.cantidad : '',
+        precioUltimo: h.precioUltimo != null ? h.precioUltimo : ''
+      });
+    });
+    statusEl.textContent = `✅ ${holdings.length} tenencia(s) detectada(s). Revisá y confirmá abajo antes de guardar.`;
+    renderStaging();
+    e.target.value = '';
+  } catch(err){
+    console.error('[ZAR Vanguard] Error extrayendo con visión:', err);
+    statusEl.textContent = '⚠️ ' + err.message;
+  }
+}
+
+// ============ STAGING: la IA propone, la persona confirma ============
+function renderStaging(){
+  const card = $('staging-card'), list = $('staging-list');
+  if (!card || !list) return;
+  if (!STAGING_HOLDINGS.length){
+    card.style.display = 'none';
+    list.innerHTML = '';
+    return;
+  }
+  card.style.display = 'block';
+  list.innerHTML = STAGING_HOLDINGS.map(h => renderStagingCard(h)).join('');
+}
+function renderStagingCard(h){
+  const sid = h._stagingId;
+  if (h.tipo === 'rentaFija'){
+    return `
+    <div class="bucket-card" style="margin-bottom:12px;">
+      <div class="bucket-nombre">🕵️ Detectado: renta fija</div>
+      <div class="aporte-form-row">
+        <div class="sim-field"><span class="sim-lbl">Nombre</span><input class="sim-input" id="stg-nombre-${sid}" value="${h.nombre||''}"></div>
+        <div class="sim-field"><span class="sim-lbl">Moneda</span><input class="sim-input" id="stg-moneda-${sid}" value="${h.moneda||''}"></div>
+        <div class="sim-field"><span class="sim-lbl">Nominal</span><input class="sim-input" type="number" id="stg-nominal-${sid}" value="${h.nominal||''}"></div>
+        <div class="sim-field"><span class="sim-lbl">Cupón anual %</span><input class="sim-input" type="number" id="stg-cupon-${sid}" value="${h.cuponAnual||''}"></div>
+        <div class="sim-field"><span class="sim-lbl">Frecuencia/año</span><input class="sim-input" type="number" id="stg-frecuencia-${sid}" value="${h.frecuenciaCupon||''}"></div>
+        <div class="sim-field"><span class="sim-lbl">Precio total</span><input class="sim-input" type="number" id="stg-precio-${sid}" value="${h.precio||''}"></div>
+        <div class="sim-field"><span class="sim-lbl">Vencimiento</span><input class="sim-input" type="date" id="stg-vencimiento-${sid}" value="${h.fechaVencimiento||''}"></div>
+      </div>
+      <div class="aporte-form-row">
+        <button class="hdr-btn pri" onclick="confirmarStaging('${sid}')">✅ Guardar esta tenencia</button>
+        <button class="hdr-btn" onclick="descartarStaging('${sid}')">✕ Descartar</button>
+      </div>
+    </div>`;
+  } else {
+    return `
+    <div class="bucket-card" style="margin-bottom:12px;">
+      <div class="bucket-nombre">🕵️ Detectado: variable</div>
+      <div class="aporte-form-row">
+        <div class="sim-field"><span class="sim-lbl">Nombre</span><input class="sim-input" id="stg-nombre-${sid}" value="${h.nombre||''}"></div>
+        <div class="sim-field"><span class="sim-lbl">Moneda</span><input class="sim-input" id="stg-moneda-${sid}" value="${h.moneda||''}"></div>
+        <div class="sim-field"><span class="sim-lbl">Cantidad</span><input class="sim-input" type="number" id="stg-cantidad-${sid}" value="${h.cantidad||''}"></div>
+        <div class="sim-field"><span class="sim-lbl">Precio último</span><input class="sim-input" type="number" id="stg-precio-${sid}" value="${h.precioUltimo||''}"></div>
+      </div>
+      <div class="aporte-form-row">
+        <button class="hdr-btn pri" onclick="confirmarStaging('${sid}')">✅ Guardar esta tenencia</button>
+        <button class="hdr-btn" onclick="descartarStaging('${sid}')">✕ Descartar</button>
+      </div>
+    </div>`;
+  }
+}
+async function confirmarStaging(sid){
+  const h = STAGING_HOLDINGS.find(x => x._stagingId === sid);
+  if (!h) return;
+  let obj = null;
+  if (h.tipo === 'rentaFija'){
+    const nombre = $('stg-nombre-'+sid).value.trim();
+    const nominal = parseFloat($('stg-nominal-'+sid).value);
+    const precio = parseFloat($('stg-precio-'+sid).value);
+    const vencimiento = $('stg-vencimiento-'+sid).value;
+    if (!nombre || !nominal || !precio || !vencimiento){ alert('Completá nombre, nominal, precio y vencimiento antes de guardar.'); return; }
+    obj = {
+      tipo: 'rentaFija',
+      nombre,
+      moneda: $('stg-moneda-'+sid).value.trim() || 'USD',
+      nominal: Number(nominal),
+      cuponAnual: parseFloat($('stg-cupon-'+sid).value) || 0,
+      frecuenciaCupon: parseFloat($('stg-frecuencia-'+sid).value) || 1,
+      precio: Number(precio),
+      fechaVencimiento: vencimiento,
+      refTasa: null,
+      fechaCompra: hoyISO(),
+      fechaUltimaActualizacionPrecio: hoyISO(),
+      notas: 'Cargado por extracción de visión (Cocos Capital)',
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+  } else {
+    const nombre = $('stg-nombre-'+sid).value.trim();
+    const cantidad = parseFloat($('stg-cantidad-'+sid).value);
+    const precioUltimo = parseFloat($('stg-precio-'+sid).value);
+    if (!nombre || !cantidad || !precioUltimo){ alert('Completá nombre, cantidad y precio antes de guardar.'); return; }
+    obj = {
+      tipo: 'variable',
+      nombre,
+      moneda: $('stg-moneda-'+sid).value.trim() || 'USD',
+      cantidad: Number(cantidad),
+      precioUltimo: Number(precioUltimo),
+      precioCompra: null,
+      fechaCompra: hoyISO(),
+      fechaUltimaActualizacionPrecio: hoyISO(),
+      notas: 'Cargado por extracción de visión (Cocos Capital)',
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+  }
+  try{
+    await db.ref(pathHoldings()).push().set(obj);
+    STAGING_HOLDINGS = STAGING_HOLDINGS.filter(x => x._stagingId !== sid);
+    renderStaging();
+  } catch(e){
+    console.error('[ZAR Vanguard] Error guardando tenencia extraída:', e);
+    alert('No se pudo guardar: ' + e.message);
+  }
+}
+function descartarStaging(sid){
+  STAGING_HOLDINGS = STAGING_HOLDINGS.filter(x => x._stagingId !== sid);
+  renderStaging();
+}
+
+// ============ ALTA MANUAL ============
+function toggleFormTipo(){
+  const tipo = $('form-tipo').value;
+  $('form-rentaFija').style.display = tipo === 'rentaFija' ? 'flex' : 'none';
+  $('form-variable').style.display = tipo === 'variable' ? 'flex' : 'none';
+}
+function limpiarFormManual(tipo){
+  if (tipo === 'rentaFija'){
+    ['fh-nombre','fh-moneda','fh-nominal','fh-cupon','fh-frecuencia','fh-precio','fh-vencimiento','fh-reftasa','fh-fechacompra','fh-notas'].forEach(id=>{ const el=$(id); if (el) el.value=''; });
+  } else {
+    ['fv-nombre','fv-moneda','fv-cantidad','fv-precio','fv-preciocompra','fv-fechacompra','fv-notas'].forEach(id=>{ const el=$(id); if (el) el.value=''; });
+  }
+}
+async function guardarHoldingManual(){
+  const tipo = $('form-tipo').value;
+  let obj = null;
+  if (tipo === 'rentaFija'){
+    const nombre = $('fh-nombre').value.trim();
+    const nominal = parseFloat($('fh-nominal').value);
+    const precio = parseFloat($('fh-precio').value);
+    const vencimiento = $('fh-vencimiento').value;
+    if (!nombre || !nominal || !precio || !vencimiento){ alert('Completá nombre, nominal, precio y fecha de vencimiento.'); return; }
+    obj = {
+      tipo: 'rentaFija',
+      nombre,
+      moneda: $('fh-moneda').value.trim() || 'USD',
+      nominal: Number(nominal),
+      cuponAnual: parseFloat($('fh-cupon').value) || 0,
+      frecuenciaCupon: parseFloat($('fh-frecuencia').value) || 1,
+      precio: Number(precio),
+      fechaVencimiento: vencimiento,
+      refTasa: $('fh-reftasa').value ? parseFloat($('fh-reftasa').value) : null,
+      fechaCompra: $('fh-fechacompra').value || hoyISO(),
+      fechaUltimaActualizacionPrecio: hoyISO(),
+      notas: $('fh-notas').value.trim(),
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+  } else {
+    const nombre = $('fv-nombre').value.trim();
+    const cantidad = parseFloat($('fv-cantidad').value);
+    const precioUltimo = parseFloat($('fv-precio').value);
+    if (!nombre || !cantidad || !precioUltimo){ alert('Completá nombre, cantidad y precio.'); return; }
+    obj = {
+      tipo: 'variable',
+      nombre,
+      moneda: $('fv-moneda').value.trim() || 'USD',
+      cantidad: Number(cantidad),
+      precioUltimo: Number(precioUltimo),
+      precioCompra: $('fv-preciocompra').value ? parseFloat($('fv-preciocompra').value) : null,
+      fechaCompra: $('fv-fechacompra').value || hoyISO(),
+      fechaUltimaActualizacionPrecio: hoyISO(),
+      notas: $('fv-notas').value.trim(),
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+  }
+  try{
+    await db.ref(pathHoldings()).push().set(obj);
+    limpiarFormManual(tipo);
+  } catch(e){
+    console.error('[ZAR Vanguard] Error guardando tenencia:', e);
+    alert('No se pudo guardar la tenencia: ' + e.message);
+  }
+}
+
+// ============ EDICIÓN PUNTUAL DE PRECIO Y BORRADO ============
+async function actualizarPrecioHolding(id, tipo){
+  const nuevoPrecio = parseFloat($('upd-precio-'+id).value);
+  const fecha = $('upd-fecha-'+id).value || hoyISO();
+  if (!nuevoPrecio || nuevoPrecio <= 0){ alert('Cargá un precio válido.'); return; }
+  const campo = tipo === 'variable' ? 'precioUltimo' : 'precio';
+  try{
+    await db.ref(`${pathHoldings()}/${id}`).update({
+      [campo]: Number(nuevoPrecio),
+      fechaUltimaActualizacionPrecio: fecha
+    });
+  } catch(e){
+    console.error('[ZAR Vanguard] Error actualizando precio:', e);
+    alert('No se pudo actualizar el precio: ' + e.message);
+  }
+}
+async function eliminarHolding(id){
+  if (!confirm('¿Eliminar esta tenencia del portafolio?')) return;
+  try{
+    await db.ref(`${pathHoldings()}/${id}`).remove();
+  } catch(e){
+    console.error('[ZAR Vanguard] Error eliminando tenencia:', e);
+    alert('No se pudo eliminar: ' + e.message);
+  }
+}
+
+// ============ RENDER DEL PORTAFOLIO ============
+function valorMercadoHolding(h){
+  if (h.tipo === 'variable'){
+    return (parseFloat(h.cantidad)||0) * (parseFloat(h.precioUltimo)||0);
+  }
+  return parseFloat(h.precio) || 0;
+}
+function renderResumenPortafolio(){
+  const ids = Object.keys(HOLDINGS_LIVE);
+  let totalRF = 0, totalVar = 0;
+  ids.forEach(id => {
+    const h = HOLDINGS_LIVE[id];
+    const v = valorMercadoHolding(h);
+    if (h.tipo === 'variable') totalVar += v; else totalRF += v;
+  });
+  const total = totalRF + totalVar;
+  const elTotal = $('port-total'), elRf = $('port-rf-pct'), elVar = $('port-var-pct');
+  if (elTotal) elTotal.textContent = fmt(total);
+  if (elRf) elRf.textContent = total > 0 ? (totalRF/total*100).toFixed(1)+'%' : '0%';
+  if (elVar) elVar.textContent = total > 0 ? (totalVar/total*100).toFixed(1)+'%' : '0%';
+}
+function renderHoldingCard(id, h){
+  const valor = valorMercadoHolding(h);
+  let detalleHtml = '';
+  let updFieldLbl = 'Precio';
+  let updValActual = '';
+  if (h.tipo === 'rentaFija'){
+    const v = calcularValuacionRentaFija(h);
+    detalleHtml = `
+      <div class="bucket-nums"><span>YTM exacto</span><b>${v.ytmExacto.toFixed(2)}%</b></div>
+      <div class="bucket-nums"><span>YTM aprox.</span><b>${v.ytmAprox.toFixed(2)}%</b></div>
+      <div class="bucket-nums"><span>Macaulay</span><b>${v.macaulay.toFixed(2)} a.</b></div>
+      <div class="bucket-nums"><span>Modified Dur.</span><b>${v.modificada.toFixed(2)}</b></div>
+      <div class="bucket-nums"><span>Convexidad</span><b>${v.convexidad.toFixed(3)}</b></div>
+      ${v.spread != null ? `<div class="bucket-nums"><span>Spread vs ref</span><b>${v.spread.toFixed(2)} pb</b></div>` : ''}
+      <div class="bucket-nums"><span>Años a vto.</span><b>${v.anios.toFixed(2)}</b></div>
+    `;
+    updFieldLbl = 'Precio total';
+    updValActual = h.precio;
+  } else {
+    const compra = h.precioCompra != null ? Number(h.precioCompra) : null;
+    let gplHtml = '';
+    if (compra != null){
+      const gplUnit = (Number(h.precioUltimo)||0) - compra;
+      const gplPct = compra > 0 ? (gplUnit/compra*100) : 0;
+      const gplTotal = gplUnit * (Number(h.cantidad)||0);
+      gplHtml = `<div class="bucket-nums"><span>Ganancia/Pérdida</span><b style="color:${gplTotal>=0?'var(--green)':'var(--red)'};">${fmt(gplTotal)} (${gplPct.toFixed(1)}%)</b></div>`;
+    }
+    detalleHtml = `
+      <div class="bucket-nums"><span>Cantidad</span><b>${h.cantidad}</b></div>
+      <div class="bucket-nums"><span>Precio último</span><b>${fmt(h.precioUltimo)}</b></div>
+      ${gplHtml}
+    `;
+    updFieldLbl = 'Precio último';
+    updValActual = h.precioUltimo;
+  }
+  return `
+  <div class="bucket-card">
+    <div class="bucket-nombre">${h.tipo === 'rentaFija' ? '🏦' : '📈'} ${h.nombre} <span style="font-size:10px;color:var(--text3);font-weight:400;">(${h.moneda||''})</span></div>
+    <div class="bucket-nums"><span>Valor de mercado</span><b>${fmt(valor)}</b></div>
+    ${detalleHtml}
+    <div class="divider"></div>
+    <div class="aporte-form-row">
+      <div class="sim-field">
+        <span class="sim-lbl">${updFieldLbl}</span>
+        <input class="sim-input" type="number" id="upd-precio-${id}" placeholder="${updValActual}">
+      </div>
+      <div class="sim-field">
+        <span class="sim-lbl">Fecha</span>
+        <input class="sim-input" type="date" id="upd-fecha-${id}" value="${hoyISO()}">
+      </div>
+      <button class="hdr-btn pri" onclick="actualizarPrecioHolding('${id}','${h.tipo}')">Actualizar</button>
+      <button class="hdr-btn" style="color:var(--red);" onclick="eliminarHolding('${id}')">✕ Borrar</button>
+    </div>
+    <div style="font-size:10px;color:var(--text3);">Últ. actualización: ${fD(h.fechaUltimaActualizacionPrecio || h.fechaCompra || '')}</div>
+  </div>`;
+}
+function renderHoldingsGrid(){
+  const grid = $('holdings-grid');
+  if (!grid) return;
+  const ids = Object.keys(HOLDINGS_LIVE);
+  if (!ids.length){
+    grid.innerHTML = '<div class="empty-note">Todavía no hay tenencias cargadas.</div>';
+    return;
+  }
+  grid.innerHTML = ids.map(id => renderHoldingCard(id, HOLDINGS_LIVE[id])).join('');
+}
+function renderPortafolio(){
+  renderResumenPortafolio();
+  renderHoldingsGrid();
+}
+</script>
+</body>
+</html>
