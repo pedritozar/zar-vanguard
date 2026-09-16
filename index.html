@@ -514,8 +514,8 @@ function renderResumen(){
     bar.style.background = pct >= 100 ? 'var(--green)' : (pct >= 50 ? 'var(--blue)' : 'var(--amber)');
   }
   $('res-nota').textContent = pct >= 100
-    ? '🏆 Meta del Fondo de Emergencia cubierta.'
-    : `Faltan ${fmt(Math.max(metaTotal - acumTotal, 0))} para completar el fondo.`;
+    ? '🏆 Piso del Fondo de Emergencia cubierto — es un mínimo, no un techo: el excedente sigue sumando como colchón.'
+    : `Faltan ${fmt(Math.max(metaTotal - acumTotal, 0))} para completar el piso del fondo.`;
 }
 
 // ============ TANDA 3 — Glide path por bucket ============
