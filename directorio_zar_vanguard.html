@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Directorio ZAR Vanguard Capital Partners — Tutor Educativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============ PALETA (copiada de index.html, no reinventada) ============ */
+:root{
+  /* Paleta clara = paleta REAL de index.html (copiada, no reinventada) */
+  --bg:#F6F8FA;
+  --panel:#F1F5F9;
+  --border:#E8ECF0;
+  --green:#10B981;
+  --blue:#0066FF;
+  --txt:#0C1117;
+  --red:#EF4444;
+  --muted:#4A5568;
+  --white:#FFFFFF;
+  --r:12px;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --font:'DM Sans',-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0d1117;
+    --panel:#161b22;
+    --border:#30363d;
+    --green:#238636;
+    --blue:#58a6ff;
+    --txt:#e6edf3;
+    --red:#f85149;
+    --muted:#9da7b3;
+    --white:#161b22;
+    --sh:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
+  }
+}
+
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--txt);
+  font-family:var(--font);
+  min-height:100vh;
+}
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 20px;
+  border-bottom:1px solid var(--border);
+  background:var(--panel);
+  flex-wrap:wrap;
+  gap:10px;
+}
+.topbar h1{
+  font-size:1.15rem;
+  margin:0;
+}
+.topbar .sub{
+  color:var(--muted);
+  font-size:0.8rem;
+}
+.topbar-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+button{
+  cursor:pointer;
+  border:none;
+  border-radius:6px;
+  padding:8px 14px;
+  font-size:0.85rem;
+  font-weight:600;
+  transition:opacity .15s;
+}
+button:hover{opacity:.85;}
+button:disabled{opacity:.5;cursor:not-allowed;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-blue{background:var(--blue);color:#0d1117;}
+.btn-red{background:var(--red);color:#fff;}
+.btn-ghost{background:transparent;color:var(--txt);border:1px solid var(--border);}
+
+main{padding:20px;max-width:1100px;margin:0 auto;}
+
+/* ============ SELECTOR DE CARGOS ============ */
+.grid-cargos{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:16px;
+  margin-top:10px;
+}
+.card{
+  background:var(--white);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:18px;
+  box-shadow:var(--sh);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.card h3{
+  margin:0;
+  font-size:1.05rem;
+  color:var(--blue);
+}
+.card p{
+  margin:0;
+  font-size:0.85rem;
+  color:var(--muted);
+  flex:1;
+}
+.card .estado{
+  font-size:0.72rem;
+  color:var(--green);
+}
+
+/* ============ CHAT ============ */
+#chatView{display:none;}
+.chat-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+}
+.chat-header h2{
+  margin:0 0 4px 0;
+  font-size:1.1rem;
+  color:var(--blue);
+}
+.chat-meta{
+  font-size:0.75rem;
+  color:var(--muted);
+}
+.chat-meta .examon{color:var(--red);font-weight:700;}
+
+.chat-box{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:16px;
+  height:50vh;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.msg{
+  max-width:80%;
+  padding:10px 14px;
+  border-radius:10px;
+  white-space:pre-wrap;
+  font-size:0.9rem;
+  line-height:1.4;
+}
+.msg.user{
+  align-self:flex-end;
+  background:var(--blue);
+  color:#0d1117;
+}
+.msg.assistant{
+  align-self:flex-start;
+  background:var(--bg);
+  border:1px solid var(--border);
+}
+.msg.pensando{
+  align-self:flex-start;
+  color:var(--muted);
+  font-style:italic;
+  font-size:0.85rem;
+}
+
+.input-row{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
+}
+textarea#inputMensaje{
+  flex:1;
+  resize:vertical;
+  min-height:60px;
+  background:var(--bg);
+  color:var(--txt);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px;
+  font-family:inherit;
+  font-size:0.9rem;
+}
+.chat-actions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+.aviso-key{
+  background:#5a1e1e;
+  border:1px solid var(--red);
+  color:#fff;
+  padding:10px 14px;
+  border-radius:8px;
+  font-size:0.85rem;
+  margin-bottom:14px;
+}
+</style>
+</head>
+<body>
+
+<!-- ============ TOPBAR ============ -->
+<div class="topbar">
+  <div>
+    <h1>🏛️ Directorio ZAR Vanguard Capital Partners</h1>
+    <div class="sub">Tutor educativo por cargo — modo teórico (sin datos reales de cartera)</div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn-blue" onclick="exportarBackup()">⬇️ Backup</button>
+    <button class="btn-ghost" onclick="document.getElementById('inputRestore').click()">⬆️ Restaurar</button>
+    <input type="file" id="inputRestore" accept=".json" style="display:none" onchange="importarBackup(event)">
+  </div>
+</div>
+
+<main>
+
+  <!-- ============ VISTA SELECTOR ============ -->
+  <div id="selectorView">
+    <div id="avisoKeySelector"></div>
+    <p style="color:var(--muted);font-size:0.85rem;">
+      Elegí un cargo del directorio para conversar. Cada uno mantiene su propio historial y su propio modelo.
+      Este modo es puramente educativo/teórico — no hay acceso a datos reales del Fondo de Emergencia ni del Portafolio.
+    </p>
+    <div class="grid-cargos" id="gridCargos"></div>
+  </div>
+
+  <!-- ============ VISTA CHAT ============ -->
+  <div id="chatView">
+    <button class="btn-ghost" onclick="volverSelector()">← Volver al directorio</button>
+    <div id="avisoKeyChat"></div>
+    <div class="chat-header">
+      <div>
+        <h2 id="chatTitulo"></h2>
+        <div class="chat-meta" id="chatMeta"></div>
+      </div>
+      <div class="chat-actions">
+        <button class="btn-green" onclick="exportarSesionActual()">📝 Exportar sesión</button>
+      </div>
+    </div>
+    <div class="chat-box" id="chatBox"></div>
+    <div class="input-row">
+      <textarea id="inputMensaje" placeholder="Escribí tu mensaje... (Enter para enviar, Shift+Enter para salto de línea)"></textarea>
+      <button class="btn-green" id="btnEnviar" onclick="enviarMensaje()">Enviar</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ============ CHARTER EMBEBIDO (constante estática, NO fetch, NO sincronización automática) ============
+// Fuente: CHARTER_zar_vanguard_directorio.md — preparado por Claude Sonnet 5, 15/09/2026.
+// Si el charter cambia, esta constante se actualiza a mano y se re-deploya.
+const CHARTER_TEXT = `# Charter del Directorio — ZAR Vanguard Capital Partners
+Documento corto, una sola vez (patrón Family Office Exchange, 5 elementos). No es
+un feature del dashboard — vive como archivo aparte y el Chair lo cita textual,
+nunca lo improvisa.
+
+## 1. Autoridad
+Pedro Zacarías es el único socio y decisor final de ZAR Vanguard Capital
+Partners. El directorio (5 cargos, cada uno asesorado por un modelo de IA bajo
+demanda) tiene función consultiva y de disciplina de proceso — no tiene poder
+de veto sobre las decisiones de Pedro. El directorio existe para forzar el
+mismo rigor de análisis que tendría un comité de inversión real, no para
+reemplazar su criterio.
+
+## 2. Propósito
+Gestionar con disciplina institucional el Fondo de Emergencia (lente
+Liquidez, sub-buckets con glide path) y el Portafolio en Cocos Capital (lente
+Crecimiento, perfil defensivo), y preparar la infraestructura y los hábitos
+de gobierno necesarios para el día en que se sume un segundo cliente (un
+familiar de Pedro) al mismo sistema.
+
+## 3. Responsabilidades por cargo
+- **Chair/CEO**: visión general, coherencia entre los demás cargos, custodia
+  de este charter.
+- **CIO**: estrategia del Portafolio (lente Crecimiento) — perfil defensivo,
+  mayoría renta fija en moneda dura, porción menor variable.
+- **CFO**: preservación y tesorería del Fondo de Emergencia (lente Liquidez).
+- **Risk Officer**: expone concentración y riesgo de liquidez; corre la
+  revisión trimestral ORSA simplificada (4 preguntas, ver punto 5) — SOLO
+  con datos reales de la cartera (Modo Revisión de Cartera), nunca en modo
+  educativo/teórico.
+- **Director/a de Oficina de Inversiones**: dueño/a de la regla de suavizado
+  de aportes; propone estrategia al resto del directorio.
+
+## 4. Membresía
+Un único socio (Pedro), asesorado por 5 personas simuladas que representan
+cada cargo de la tabla anterior. No hay terceros con voto. Este charter se
+revisa el día que se sume un segundo cliente real al sistema.
+
+## 5. Reuniones
+Revisión trimestral obligatoria, cadencia estilo Yale: Pedro cumple el rol de
+"staff" (la Oficina de Inversiones propone), y el directorio (liderado por el
+Chair) cumple el rol de "comité" (revisa y aprueba) — es una separación de
+sombreros dentro de la misma persona, patrón normal en fondos chicos sin
+equipo, no una aprobación circular. Formato de la revisión: ORSA simplificado
+en 4 preguntas — ¿cuáles son los riesgos hoy?, ¿cambió algo desde la última
+revisión?, ¿la asignación real coincide con la fase del glide path?, ¿hace
+falta un plan de contingencia? Fuera de la revisión trimestral, cualquier
+cargo puede consultarse bajo demanda en modo educativo (Tanda 4a).
+
+---
+*Preparado por Claude Sonnet 5 — 15/09/2026, a partir del SPEC (sección 4),
+a pedido de Pedro tras la revisión de DeepSeek que marcó que el Chair iba a
+citar un charter que todavía no existía por escrito.*`;
+
+// ============ BLOQUE COMÚN DE LOS 5 SYSTEM PROMPTS (copiado tal cual del spec) ============
+const COMMON_PROMPT_BLOCK = `Sos [NOMBRE DEL CARGO] del directorio de "ZAR Vanguard Capital Partners", el
+fondo personal de Pedro. Tu rol es EDUCATIVO en este modo: explicás tu propia
+función dentro del directorio y ponés a prueba a Pedro sobre los conceptos de
+tu disciplina, con el mismo estilo mentor exigente (no punitivo, pero
+directo) que ya usan sus otros tutores.
+
+IMPORTANTE — LÍMITE DE ALCANCE: en este modo NO tenés acceso a datos reales
+de la cartera de Pedro (eso es exclusivo del "Modo Revisión de Cartera",
+otra pantalla). Hablás de TEORÍA y CONCEPTOS de tu disciplina, nunca de
+números reales de su Fondo de Emergencia o Portafolio. Si Pedro te pregunta
+por sus números reales, decile que eso se ve en el Modo Revisión de Cartera,
+no acá.
+
+LÍMITE ADICIONAL — NUNCA opines sobre cuánto gana Pedro, su productividad
+como trader/estudiante, ni la fuente de sus ingresos. Tu dominio es la
+gestión de los activos YA asignados al fondo, no cómo Pedro genera esa
+plata. Si la conversación deriva ahí, redirigila de vuelta a tu disciplina.
+
+CHARTER DEL DIRECTORIO: el texto completo de
+\`CHARTER_zar_vanguard_directorio.md\` está pegado al final de este system
+prompt, después de la marca \`--- CHARTER DEL DIRECTORIO (fuente autorizada)
+---\`. Podés citarlo textual, pero NUNCA inventes ni completes de memoria
+contenido de charter que no esté literal ahí. Tu instrucción específica de
+cargo (más abajo) te dice qué partes del charter te corresponde usar — no
+todos los cargos lo usan con el mismo alcance.
+
+FUENTES REALES — este directorio no es un invento genérico, está inspirado
+en prácticas reales de: Willett Advisors, Creative Planning, Family Office
+Exchange (FOX, el charter de 5 elementos), J.P. Morgan Private Bank (marco
+de 4 lentes: Liquidez/Crecimiento/Estilo de vida/Legado) y la Yale
+Investments Office (regla de gasto y cadencia de revisión trimestral). Podés
+nombrar estas instituciones como inspiración GENERAL del diseño, pero NO les
+atribuyas conceptos, marcos, cifras, fechas ni detalles específicos que no
+puedas respaldar con documentos en tu contexto — eso incluye tanto
+datos puntuales ("Yale gasta 5,1% anual") como marcos conceptuales
+inventados con tono seguro ("el modelo Willett se basa en tres pilares: A,
+B, C"). Si no tenés ese respaldo, hablá del concepto en general SIN
+atribuirlo a una institución puntual. Ningún concepto que enseñes acá se va
+a contrastar con datos reales de Firebase en este modo (eso es 4b) — sos la
+única capa de control de calidad de lo que decís, así que la honestidad
+sobre tu propia incertidumbre importa más acá que en cualquier otro modo del
+sistema.
+
+TAG DE MODELO: al final de CADA respuesta, indicá qué modelo debería usarse
+para el próximo turno según la complejidad: [[NEXT_MODEL:haiku]] para
+preguntas simples/definiciones, [[NEXT_MODEL:sonnet]] para análisis
+profundo, [[NEXT_MODEL:opus]] solo si Pedro pide máxima profundidad.
+
+MODO EXAMEN: si Pedro escribe "tomame examen", activalo — actuá como
+examinador estricto sobre TU dominio específico, preguntas concretas, no
+regales la respuesta. Si la respuesta depende de un dato específico que no
+podés verificar (una cifra, fecha o detalle puntual de una institución real
+sin documentos en tu contexto), decile a Pedro explícitamente que ese dato
+puntual no lo tenés, respondé con el concepto general que sí podés explicar,
+y volvé a la pregunta original reconociendo que la parte puntual quedó sin
+responder — no la abandones cambiando de tema. Si escribe "salir del
+examen", volvé a modo explicación normal.`;
+
+// ============ PARTES ESPECÍFICAS DE CADA CARGO (copiadas tal cual del spec) ============
+const CHAIR_SPECIFIC = `TU FUNCIÓN ESPECÍFICA: sos la visión general del directorio — el que
+mantiene la coherencia entre todos los cargos y revisa que las decisiones
+de cada uno respeten el propósito del fondo. A diferencia de los otros 4
+cargos, VOS SÍ podés hablar de las 5 secciones completas del charter
+(Autoridad, Propósito, Responsabilidades por cargo, Membresía, Reuniones) —
+citalo textual de la constante pegada al final de este system prompt cuando
+Pedro te pregunte por autoridad, propósito o reglas generales del
+directorio, NUNCA inventes o completes de memoria ningún contenido de
+charter que no esté literal ahí.
+
+Explicale a Pedro qué hace un Chair en un family office real y cómo se
+diferencia de un CIO o un CFO.
+
+SOBRE LA REVISIÓN TRIMESTRAL (staff propone, comité aprueba): esto NO es
+una aprobación circular, aunque a primera vista pueda sonar confuso — es
+una separación de sombreros dentro de la misma persona (Pedro), un patrón
+normal en fondos chicos sin equipo. Como se explica en la sección
+"Reuniones" del charter: Pedro cumple el rol de "staff" a través de la
+Oficina de Inversiones (propone la estrategia), y el directorio —liderado
+por vos como Chair— cumple el rol de "comité" (revisa y aprueba esa
+propuesta contra el propósito y los límites del fondo). Si Pedro te
+pregunta "¿no es raro que yo me apruebe a mí mismo?", explicaselo así:
+proponer y revisar son funciones distintas aunque las ejecute la misma
+persona con sombreros distintos — el valor está en forzar el proceso de
+revisión, no en que haya terceros votando.`;
+
+const CIO_SPECIFIC = `TU FUNCIÓN ESPECÍFICA: sos responsable de la estrategia del Portafolio
+(lente Crecimiento, Cocos Capital) — perfil defensivo, mayoría renta fija en
+moneda dura, porción menor variable. Explicale a Pedro conceptos de
+estrategia de portafolio a nivel CIO: por qué un perfil defensivo, qué es
+diversificación por moneda/duración, cómo se piensa el balance renta
+fija/variable en un fondo chico y personal (no institucional). Podés
+apoyarte en los mismos conceptos que ya explica \`renta_fija_tutor.html\`
+(YTM, duración, convexidad) pero desde la perspectiva de ESTRATEGIA de
+cartera, no de cálculo puntual de un bono — ese cálculo ya lo tiene resuelto
+el dashboard principal.
+
+SOBRE EL CHARTER: podés citarlo solo para lo que dice de tu propio rol
+(sección Responsabilidades por cargo). Si Pedro pregunta por autoridad,
+propósito general o membresía del directorio, redirigilo al Chair — esa
+parte del charter no te corresponde a vos.`;
+
+const CFO_SPECIFIC = `TU FUNCIÓN ESPECÍFICA: preservación, tesorería y disciplina de proceso del
+Fondo de Emergencia (lente Liquidez) — un fondo personal no tiene
+obligaciones regulatorias (no hay CNV, SEC ni AFIP en el scope de este
+directorio), así que NUNCA hables de "compliance" en sentido normativo ni
+inventes marcos regulatorios. Lo que sí es tu dominio es la disciplina de
+PROCESO interno: por qué el fondo se revisa trimestralmente, por qué se
+respeta la regla de suavizado de aportes aunque el ingreso varíe mes a mes,
+y por qué no se persigue rendimiento agresivo en esta lente. Explicale
+también a Pedro por qué un fondo de emergencia se diversifica en
+sub-buckets por tipo de contingencia en vez de un pozo único, y qué es el
+glide path "through" (a diferencia de un glide path que se aplana a una
+fecha fija, como en un fondo de pensión).
+
+LÍMITE ESPECÍFICO PARA VOS: cuando hables de "cuántos meses de gastos cubre
+el fondo", quedate en el ACTIVO (cuánto hay acumulado, qué meta representa)
+— nunca lo gires hacia el ingreso de Pedro ("¿cuántos meses podés sostenerte
+sin trabajar?", "¿cuánto necesitás ganar para...?"). Es una puerta lateral
+fácil de cruzar sin darte cuenta: el fondo cubre gastos, no evalúes la
+capacidad de generar ingreso de la persona.
+
+SOBRE EL CHARTER: podés citarlo solo para lo que dice de tu propio rol
+(sección Responsabilidades por cargo). Si Pedro pregunta por autoridad,
+propósito general o membresía del directorio, redirigilo al Chair.`;
+
+const RISK_SPECIFIC = `TU FUNCIÓN ESPECÍFICA: exponer concentración y riesgo de liquidez, y correr
+la revisión trimestral ORSA simplificada (las 4 preguntas del charter:
+¿cuáles son los riesgos hoy?, ¿cambió algo desde la última revisión?, ¿la
+asignación real coincide con la fase del glide path?, ¿hace falta un plan de
+contingencia?). En modo educativo, explicale a Pedro qué es un ORSA en
+seguros y por qué se adaptó acá en versión simplificada, qué significa
+"concentración" en un portafolio chico, y cómo se piensa un stress test
+básico sin las herramientas de un banco.
+
+LÍMITE ESPECÍFICO PARA VOS: en ESTE modo (educativo, Tanda 4a) explicás el
+ORSA como concepto, pero NUNCA lo corrés de verdad — no le pidas a Pedro sus
+números reales ni actúes como si estuvieras evaluando su situación actual.
+La revisión ORSA real, con datos reales de la cartera, se corre solo en el
+Modo Revisión de Cartera (otra pantalla, Tanda 4b). Si Pedro te dice "corré
+la revisión ahora" o "hacé el ORSA", aclarale que acá es solo teoría y que
+la revisión real está en la otra pantalla.
+
+SOBRE EL CHARTER: podés citar las 4 preguntas del ORSA simplificado (ya
+están en el charter) y lo que te corresponde de la sección Responsabilidades
+por cargo. Si Pedro pregunta por autoridad, propósito general o membresía
+del directorio, redirigilo al Chair.`;
+
+const DIRECTOR_SPECIFIC = `TU FUNCIÓN ESPECÍFICA: dueño/a de la regla de suavizado de aportes (ya
+implementada en el dashboard: 80% del aporte del mes anterior + 20% de una
+tasa objetivo sobre el ingreso promedio, banda 10%-15%) y de proponer
+estrategia al resto del directorio. Explicale a Pedro la Yale Spending Rule
+real (80/20, tasa objetivo 5,25%, banda 4,5%-6,0%, aplicada al GASTO de un
+endowment) y en qué se diferencia la adaptación que se hizo acá (aplicada al
+APORTE de una persona con ingresos irregulares, no al gasto de una
+perpetuidad) — el objetivo pedagógico es que Pedro entienda POR QUÉ se
+adaptó así, no solo que memorice la fórmula.
+
+ACLARACIÓN ADICIONAL SOLO PARA VOS: de los 5 cargos, sos el de MAYOR riesgo
+de cruzar el límite de arriba, porque tu función depende directamente del
+ingreso de Pedro. Podés explicar la fórmula, por qué pondera ingreso
+promedio, y qué rol cumple la banda mínima/máxima — pero NUNCA digas que el
+aporte "debería" ser más alto porque Pedro "debería" generar más ingreso, ni
+compares su ingreso actual contra uno ideal. Tampoco evalúes la
+previsibilidad o estabilidad de su ingreso ("¿tenés visibilidad a 3 meses?",
+"¿tu ingreso es predecible?") — la fórmula ya maneja la irregularidad vía la
+banda mínima/máxima, tu rol es EXPLICAR ese mecanismo, no diagnosticar la
+situación de ingreso de Pedro. Esto aplica tanto en este modo educativo como
+en el Modo Revisión de Cartera (otra pantalla, con datos reales) que se suma
+más adelante — ahí la exigencia es todavía mayor: solo podés comentar la
+regla y su resultado sobre los números dados, nunca calificar el nivel de
+ingreso como bueno/malo/suficiente/insuficiente.
+
+SOBRE EL CHARTER: podés citarlo solo para lo que dice de tu propio rol
+(sección Responsabilidades por cargo). Si Pedro pregunta por autoridad,
+propósito general o membresía del directorio, redirigilo al Chair.`;
+
+// ============ DEFINICIÓN DE LOS 5 CARGOS ============
+const CARGOS = [
+  { id:'chair', nombre:'Chair/CEO', descripcion:'Visión general y coherencia del directorio; custodio del charter.', specific: CHAIR_SPECIFIC },
+  { id:'cio', nombre:'CIO', descripcion:'Estrategia del Portafolio (lente Crecimiento) — perfil defensivo.', specific: CIO_SPECIFIC },
+  { id:'cfo', nombre:'CFO', descripcion:'Preservación y tesorería del Fondo de Emergencia (lente Liquidez).', specific: CFO_SPECIFIC },
+  { id:'risk', nombre:'Risk Officer', descripcion:'Concentración, riesgo de liquidez y revisión ORSA simplificada.', specific: RISK_SPECIFIC },
+  { id:'director', nombre:'Director/a de Oficina de Inversiones', descripcion:'Regla de suavizado de aportes; propone estrategia al directorio.', specific: DIRECTOR_SPECIFIC }
+];
+
+// ============ ESTADO POR CARGO (5 historiales independientes) ============
+const cargoState = {};
+CARGOS.forEach(c=>{
+  cargoState[c.id] = {
+    history: [],       // [{role:'user'|'assistant', content:string}]
+    examMode: false,
+    modelKey: 'sonnet', // 'haiku' | 'sonnet' | 'opus'
+    isLoading: false
+  };
+});
+
+let cargoActual = null; // id del cargo abierto actualmente
+
+// ============ MODELOS Y TAG UNIFICADO [[NEXT_MODEL:x]] ============
+const modelRegex = /\[\[NEXT_MODEL:(haiku|sonnet|opus)\]\]/;
+const modelMap = {
+  haiku: 'claude-haiku-4-5-20251001',
+  sonnet: 'claude-sonnet-5',
+  opus: 'claude-opus-5'
+};
+
+// ============ LLAMADA A LA API (BYOK, patrón reusado de valuacion_tutor.html) ============
+async function callClaudeRaw(model, maxTokens, systemPrompt, messages){
+  const apiKey = localStorage.getItem('vanguardApiKey') || '';
+  if(!apiKey){ alert('Falta la API Key de Anthropic. Guardala primero en el dashboard principal (botón 🔑).'); return null; }
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({ model, max_tokens: maxTokens, system: systemPrompt, messages })
+    });
+    if(!res.ok){ throw new Error('HTTP '+res.status+': '+await res.text()); }
+    const data = await res.json();
+    const bloquesTexto = (data.content||[]).filter(b=>b.type==='text');
+    if(!bloquesTexto.length){ throw new Error('Respuesta sin contenido de texto.'); }
+    return { text: bloquesTexto.map(b=>b.text).join('\n'), model, stopReason: data.stop_reason };
+  }catch(err){
+    console.error(err);
+    return { error: err.message };
+  }
+}
+
+// ============ ARMADO DE SYSTEM PROMPT (bloque común + específico + charter) ============
+function buildSystemPrompt(cargo){
+  const st = cargoState[cargo.id];
+  const encabezado = COMMON_PROMPT_BLOCK.replace('[NOMBRE DEL CARGO]', cargo.nombre);
+  const notaExamen = st.examMode
+    ? 'ESTADO ACTUAL DE SESIÓN: MODO EXAMEN ACTIVO en este momento.'
+    : 'ESTADO ACTUAL DE SESIÓN: modo explicación normal (examen inactivo).';
+  return encabezado + '\n\n' + notaExamen + '\n\n' + cargo.specific +
+    '\n\n--- CHARTER DEL DIRECTORIO (fuente autorizada) ---\n\n' + CHARTER_TEXT;
+}
+
+// ============ AVISO DE API KEY FALTANTE ============
+function chequearApiKey(){
+  const apiKey = localStorage.getItem('vanguardApiKey') || '';
+  const html = apiKey ? '' : '<div class="aviso-key">⚠️ Falta la API Key de Anthropic. Guardala primero en el dashboard principal (botón 🔑) para poder chatear con el directorio.</div>';
+  document.getElementById('avisoKeySelector').innerHTML = html;
+  document.getElementById('avisoKeyChat').innerHTML = html;
+}
+
+// ============ RENDER SELECTOR ============
+function renderSelector(){
+  const grid = document.getElementById('gridCargos');
+  grid.innerHTML = '';
+  CARGOS.forEach(c=>{
+    const st = cargoState[c.id];
+    const div = document.createElement('div');
+    div.className = 'card';
+    const cantMsgs = st.history.filter(m=>m.role==='user').length;
+    div.innerHTML = `
+      <h3>${c.nombre}</h3>
+      <p>${c.descripcion}</p>
+      <div class="estado">${cantMsgs>0 ? cantMsgs+' consulta(s) en esta sesión' : 'Sin conversación todavía'}${st.examMode ? ' · 🔴 examen activo' : ''}</div>
+      <button class="btn-blue" onclick="abrirCargo('${c.id}')">Conversar</button>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+// ============ NAVEGACIÓN ENTRE VISTAS ============
+function abrirCargo(id){
+  cargoActual = id;
+  document.getElementById('selectorView').style.display = 'none';
+  document.getElementById('chatView').style.display = 'block';
+  const cargo = CARGOS.find(c=>c.id===id);
+  document.getElementById('chatTitulo').textContent = cargo.nombre;
+  renderChat();
+  chequearApiKey();
+}
+
+function volverSelector(){
+  cargoActual = null;
+  document.getElementById('chatView').style.display = 'none';
+  document.getElementById('selectorView').style.display = 'block';
+  renderSelector();
+  chequearApiKey();
+}
+
+// ============ RENDER DEL CHAT ============
+function renderChat(){
+  if(!cargoActual) return;
+  const cargo = CARGOS.find(c=>c.id===cargoActual);
+  const st = cargoState[cargoActual];
+
+  document.getElementById('chatMeta').innerHTML =
+    `Modelo actual: <b>${st.modelKey}</b> · Modo examen: <span class="${st.examMode?'examon':''}">${st.examMode?'ACTIVO':'inactivo'}</span>`;
+
+  const box = document.getElementById('chatBox');
+  box.innerHTML = '';
+  st.history.forEach(m=>{
+    const div = document.createElement('div');
+    div.className = 'msg ' + (m.role==='user' ? 'user' : 'assistant');
+    div.textContent = m.content;
+    box.appendChild(div);
+  });
+  if(st.isLoading){
+    const div = document.createElement('div');
+    div.className = 'msg pensando';
+    div.textContent = cargo.nombre + ' está pensando...';
+    box.appendChild(div);
+  }
+  box.scrollTop = box.scrollHeight;
+
+  document.getElementById('btnEnviar').disabled = st.isLoading;
+}
+
+// ============ DETECCIÓN DE FRASES GATILLO DE MODO EXAMEN ============
+function detectarModoExamen(cargo, textoUsuario){
+  const st = cargoState[cargo.id];
+  const t = textoUsuario.toLowerCase();
+  if(t.includes('tomame examen')) st.examMode = true;
+  if(t.includes('salir del examen')) st.examMode = false;
+}
+
+// ============ ENVÍO DE MENSAJE ============
+async function enviarMensaje(){
+  if(!cargoActual) return;
+  const cargo = CARGOS.find(c=>c.id===cargoActual);
+  const st = cargoState[cargoActual];
+  const input = document.getElementById('inputMensaje');
+  const texto = input.value.trim();
+  if(!texto || st.isLoading) return;
+
+  const apiKey = localStorage.getItem('vanguardApiKey') || '';
+  if(!apiKey){ alert('Falta la API Key de Anthropic. Guardala primero en el dashboard principal (botón 🔑).'); return; }
+
+  detectarModoExamen(cargo, texto);
+
+  st.history.push({ role:'user', content: texto });
+  input.value = '';
+  st.isLoading = true;
+  renderChat();
+
+  const systemPrompt = buildSystemPrompt(cargo);
+  const model = modelMap[st.modelKey] || modelMap.sonnet;
+  const messages = st.history.map(m=>({ role:m.role, content:m.content }));
+
+  const resp = await callClaudeRaw(model, 4096, systemPrompt, messages);
+
+  st.isLoading = false;
+
+  if(!resp){
+    renderChat();
+    return;
+  }
+  if(resp.error){
+    st.history.push({ role:'assistant', content: '⚠️ Error al consultar: ' + resp.error });
+    renderChat();
+    return;
+  }
+
+  const match = modelRegex.exec(resp.text);
+  if(match){
+    st.modelKey = match[1];
+  }
+  const clean = resp.text.replace(modelRegex, '').trim();
+  st.history.push({ role:'assistant', content: clean });
+  renderChat();
+}
+
+// Enter para enviar (Shift+Enter = salto de línea)
+document.addEventListener('keydown', function(e){
+  if(e.target && e.target.id === 'inputMensaje' && e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    enviarMensaje();
+  }
+});
+
+// ============ EXPORT DE SESIÓN A MARKDOWN (por cargo) ============
+function downloadFile(filename, content, mime){
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportarSesionMarkdown(cargoNombre, chatHistory){
+  const fecha = new Date().toISOString().slice(0,10);
+  let md = `## 🏛️ ZAR Vanguard — Sesión con ${cargoNombre} (${fecha})\n\n`;
+  chatHistory.forEach(m=>{
+    if(m.role !== 'user' && m.role !== 'assistant') return;
+    md += `**${m.role === 'user' ? 'Pedro' : cargoNombre}:**\n${m.content}\n\n`;
+  });
+  downloadFile(`sesion_${cargoNombre.replace(/\s+/g,'_')}_${fecha}.md`, md, 'text/markdown');
+}
+
+function exportarSesionActual(){
+  if(!cargoActual) return;
+  const cargo = CARGOS.find(c=>c.id===cargoActual);
+  const st = cargoState[cargoActual];
+  if(!st.history.length){
+    alert('Todavía no hay conversación con ' + cargo.nombre + ' para exportar.');
+    return;
+  }
+  exportarSesionMarkdown(cargo.nombre, st.history);
+}
+
+// ============ BACKUP / RESTORE JSON DE LAS 5 CONVERSACIONES ============
+function exportarBackup(){
+  const cargosBackup = {};
+  CARGOS.forEach(c=>{
+    const st = cargoState[c.id];
+    cargosBackup[c.id] = {
+      history: st.history,
+      examMode: st.examMode,
+      modelKey: st.modelKey
+    };
+  });
+  const backup = {
+    tipo: 'directorio_zar_vanguard_backup',
+    fecha: new Date().toISOString(),
+    cargos: cargosBackup
+  };
+  downloadFile('backup_directorio_zar_vanguard_' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(backup, null, 2), 'application/json');
+}
+
+function importarBackup(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let data;
+    try{
+      data = JSON.parse(e.target.result);
+    }catch(err){
+      alert('El archivo no es un JSON válido.');
+      event.target.value = '';
+      return;
+    }
+    if(!data || data.tipo !== 'directorio_zar_vanguard_backup'){
+      alert('El archivo no corresponde a un backup del Directorio ZAR Vanguard (falta o no coincide el campo "tipo").');
+      event.target.value = '';
+      return;
+    }
+    if(!confirm('¿Restaurar este backup? Se van a sobreescribir las 5 conversaciones actuales en memoria (no afecta ningún dato de Firebase).')){
+      event.target.value = '';
+      return;
+    }
+    CARGOS.forEach(c=>{
+      const guardado = data.cargos && data.cargos[c.id];
+      if(guardado){
+        cargoState[c.id].history = Array.isArray(guardado.history) ? guardado.history : [];
+        cargoState[c.id].examMode = !!guardado.examMode;
+        cargoState[c.id].modelKey = guardado.modelKey || 'sonnet';
+      }
+    });
+    alert('Backup restaurado correctamente.');
+    event.target.value = '';
+    if(cargoActual){ renderChat(); } else { renderSelector(); }
+  };
+  reader.readAsText(file);
+}
+
+// ============ INICIALIZACIÓN ============
+function init(){
+  chequearApiKey();
+  renderSelector();
+}
+init();
+</script>
+</body>
+</html>
