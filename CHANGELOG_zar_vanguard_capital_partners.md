@@ -535,3 +535,78 @@ Chart.js sin observaciones.
 únicamente el push manual de Pedro de los commits acumulados de Tanda 3 y Tanda 4b.
 
 *Agregado por Claude Sonnet 5 — 2026-09-17, a pedido de Pedro.*
+
+## 2026-09-17 (cont.) — Primera prueba real del Directorio + cierre de sesión
+
+Pedro probó el Directorio por primera vez con la carpeta conectada. Registro de lo que pasó,
+qué se arregló, y qué queda abierto para retomar en un chat nuevo (esta conversación quedó larga
+y se corta acá).
+
+**1. Ambiente de ejecución — resuelto.** Pedro abre los `.html` con doble clic en Safari
+(`file://`). Eso rompía dos cosas a la vez: Firebase Google Sign-In rechaza `signInWithPopup`
+fuera de http/https, y Safari trata cada `file://` como origen aislado, así que
+`directorio_zar_vanguard.html` no veía el `vanguardApiKey` guardado desde `index.html`. Mismo
+problema ya resuelto antes para Tactical Ledger. Fix: `🚀_ABRIR_ESTE_no_index.command` (servidor
+`python3 -m http.server` local, puerto 8899, abre ambos `.html` por `http://localhost:8899/`).
+Renombrado con emoji a pedido de Pedro para que no se confunda con `index.html` en Finder.
+Commits `da9ff78`, `8b7ea2d`. **Probado y funcionando** — el login con Google ya anduvo.
+
+**2. Modo Revisión de Cartera — bloqueado por reglas de Firebase, no por código.** Al entrar
+logueado, tira `permission_denied at /clientes/pedro/vanguard/fondoEmergencia/buckets`. No es
+falta de datos (eso daría `{}` vacío, no `permission_denied`) ni un bug del HTML — es que las
+reglas de seguridad de la Realtime Database (proyecto `zarfinance`, consola de Firebase) nunca se
+extendieron al nodo nuevo `clientes/{clienteId}/vanguard/...`. El resto de ZAR Finance usa un
+patrón de regla con el UID como clave (`$uid`), pero acá el path usa `clienteId` ("pedro"), que
+no es el UID — la regla vieja no lo cubre, y Firebase deniega por default lo que no está
+explícito. Nadie verificó las reglas de la consola cuando se generó Tanda 1 (el QC de esa tanda
+verificó estructura de datos, no reglas). **Pendiente**: Pedro tiene que pasar el JSON de reglas
+actual de la consola de Firebase (Realtime Database → Rules) para verificar el merge exacto antes
+de publicar un bloque nuevo tipo:
+```json
+"clientes": { "pedro": { "vanguard": {
+  ".read": "auth != null && auth.uid === 'JsW7CjDObEhn3DoFkwzuJUGLhrB3'",
+  ".write": "auth != null && auth.uid === 'JsW7CjDObEhn3DoFkwzuJUGLhrB3'"
+}}}
+```
+(a confirmar contra las reglas reales, no aplicar a ciegas). Esto también aplica potencialmente a
+`index.html` (Tandas 1-3) si en algún momento escribe aportes/holdings reales a ese mismo nodo —
+mismo path, misma regla, un solo fix cubre ambos archivos.
+
+**3. Tarea delegada a ZAR Finance, todavía sin confirmar hecha.** Se armó y entregó
+`INSTRUCTIVO_conectar_fondo_emergencia_en_zar_finance.md` (en esta carpeta) para el chat dedicado
+de ZAR Finance — conectar en vivo la card estática de "Fondo de Emergencia" (pestaña Inversiones)
+al mismo nodo `clientes/pedro/vanguard/fondoEmergencia`, solo lectura. Pedro todavía no confirmó
+si lo ejecutó. Cuando esté listo, la comparación pendiente es que el total que muestre esa card
+coincida con lo que arma `armarResumenCartera()` del lado de Vanguard.
+
+**4. Pregunta de diseño abierta, sin resolver — "hacerlo más dinámico".** Pedro preguntó si vale
+la pena darle al directorio una capa visual más rica (ej. una mesa con sillas, una por cargo) y
+cómo funciona en la realidad un comité de inversión tipo family office / Yale Investments Office.
+Se le explicó que el modelo real (staff propone con trabajo ya armado, comité revisa/aprueba, sin
+debate en vivo) ya es bastante fiel a como está armado el directorio actual (Pedro = staff/
+Director de Oficina de Inversiones, el resto = comité). Quedó pendiente que Pedro defina qué tipo
+de "dinamismo" quiere — dos caminos con esfuerzo y objetivo muy distintos:
+   (a) **Cosmético**: capa visual tipo mesa/sillas/avatares — no cambia el comportamiento, es
+       una skin sobre lo que ya existe.
+   (b) **Estructural**: rehacer el flujo de interacción para que se sienta más como una reunión
+       real (agenda, minuta, mociones) en vez de 5 chats independientes por cargo.
+No se armó ningún prompt ni se decidió nada todavía — es una conversación de diseño a retomar,
+no una tarea en curso.
+
+### ESTADO ACTUAL DEL PROYECTO (para arrancar el chat nuevo sin releer todo)
+
+- **Las 4 tandas están generadas, auditadas (Cowork técnico + 3 rondas de DeepSeek) y cerradas.**
+  Código en `directorio_zar_vanguard.html` (tutor + revisión de cartera) e `index.html` (Fondo de
+  Emergencia + Portafolio + glide path), ambos en esta carpeta.
+- **Todo commiteado localmente**, nada pusheado todavía (son ~13 commits acumulados — Pedro
+  pushea manual desde su Terminal cuando quiera, nunca lo hace Cowork).
+- **Documentación de diseño completa y respaldada en git** (SPEC, CHARTER, 5 PROMPT_tanda*.md,
+  INSTRUCCIONES_chat_deepseek*.md, este CHANGELOG) — antes vivía sin respaldo, se corrigió esta
+  sesión (commit `c834bbf`).
+- **Bloqueador activo para poder usar Modo Revisión de Cartera de verdad**: el punto 2 de arriba
+  (reglas de Firebase). Sin eso resuelto, el directorio teórico (Tanda 4a) funciona bien, pero la
+  revisión con datos reales (Tanda 4b) no puede leer nada.
+- **Tareas en el aire, no urgentes**: instructivo de ZAR Finance (punto 3) y la conversación de
+  diseño sobre dinamismo visual (punto 4).
+
+*Agregado por Claude Sonnet 5 — 2026-09-17, a pedido de Pedro (cierre de sesión).*
