@@ -505,3 +505,33 @@ se contradicen solo cuando se leen juntos) — buena evidencia de que la divisi�
 Cowork (técnico) y DeepSeek (diseño/criterio) sigue funcionando como se pensó.
 
 *Agregado por Claude Sonnet 5 — 2026-09-17, a pedido de Pedro.*
+
+## 2026-09-17 (cont.) — Ronda 3: visto bueno final de DeepSeek + sincronización CHARTER_TEXT
+
+DeepSeek leyó los archivos actualizados completos (SPEC, CHARTER, `index.html`, CHANGELOG,
+`PROMPT_tanda4b`, y el `directorio_zar_vanguard.html` corregido de la Ronda 2) y dio **visto
+bueno de diseño**, con un hallazgo real de sincronización, no un bug de comportamiento:
+
+**Hallazgo confirmado**: `CHARTER_zar_vanguard_directorio.md` tiene el párrafo "piso, no techo"
+en la sección 2 (Propósito), pero la constante `CHARTER_TEXT` embebida en
+`directorio_zar_vanguard.html` — que es lo que el Chair cita textual — seguía con la versión
+vieja del Propósito, sin ese párrafo. Verificado por lectura directa antes de tocar nada: cierto,
+la sección 2 de `CHARTER_TEXT` no tenía el párrafo nuevo. Es exactamente el riesgo que el propio
+`PROMPT_tanda4a` ya había anticipado en su momento: el charter embebido es "un hardcode con fecha
+de vencimiento" que hay que actualizar a mano cada vez que cambia el `.md`.
+
+**Fix aplicado**: una línea agregada a `CHARTER_TEXT`, copiada textual del `.md` (no
+reformulada). `node --check` limpio; diff contra la versión de la Ronda 2 confirma que es el
+único cambio, sin regresión. Commit local `ec271aa`.
+
+**El resto del visto bueno de DeepSeek, sin observaciones**: los 5 puntos de "piso, no techo"
+correctamente aplicados (SPEC, CHARTER, `index.html`, CHANGELOG, y la nota `fmt()`/USD en el
+`PROMPT_tanda4b` que DeepSeek sumó como un quinto punto no listado originalmente); los 2 fixes de
+la Ronda 2 (override del Risk Officer, FUENTES REALES) bien implementados; anti-inferencia del
+Director completa; funciones literales fieles; Firebase, paleta, export, `localStorage` y
+Chart.js sin observaciones.
+
+**Con este fix, Tanda 4b queda cerrada de los dos lados** (Cowork y DeepSeek). Pendiente:
+únicamente el push manual de Pedro de los commits acumulados de Tanda 3 y Tanda 4b.
+
+*Agregado por Claude Sonnet 5 — 2026-09-17, a pedido de Pedro.*
