@@ -6,6 +6,10 @@
 <title>Directorio ZAR Vanguard Capital Partners — Tutor Educativo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- ============ FIREBASE COMPAT SDK v10.7.1 (solo lectura, Modo Revisión de Cartera — Tanda 4b) ============ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
 /* ============ PALETA (copiada de index.html, no reinventada) ============ */
 :root{
@@ -17,6 +21,7 @@
   --blue:#0066FF;
   --txt:#0C1117;
   --red:#EF4444;
+  --amber:#F59E0B;
   --muted:#4A5568;
   --white:#FFFFFF;
   --r:12px;
@@ -32,6 +37,7 @@
     --blue:#58a6ff;
     --txt:#e6edf3;
     --red:#f85149;
+    --amber:#d29922;
     --muted:#9da7b3;
     --white:#161b22;
     --sh:0 1px 3px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3);
@@ -122,6 +128,7 @@ main{padding:20px;max-width:1100px;margin:0 auto;}
 
 /* ============ CHAT ============ */
 #chatView{display:none;}
+#revisionView{display:none;}
 .chat-header{
   display:flex;
   align-items:center;
@@ -184,7 +191,7 @@ main{padding:20px;max-width:1100px;margin:0 auto;}
   gap:8px;
   margin-top:12px;
 }
-textarea#inputMensaje{
+textarea#inputMensaje, textarea#inputMensajeRevision{
   flex:1;
   resize:vertical;
   min-height:60px;
@@ -210,6 +217,31 @@ textarea#inputMensaje{
   border-radius:8px;
   font-size:0.85rem;
   margin-bottom:14px;
+}
+
+/* ============ MODO REVISIÓN DE CARTERA (Tanda 4b) ============ */
+.revision-meta{
+  font-size:0.75rem;
+  color:var(--muted);
+  margin-bottom:14px;
+}
+select#selectCargoRevision{
+  background:var(--panel);
+  color:var(--txt);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:8px;
+  font-size:0.85rem;
+  margin-bottom:10px;
+}
+.chat-libre-revision{
+  margin-top:24px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+.chat-libre-revision h3{
+  color:var(--blue);
+  font-size:1rem;
 }
 </style>
 </head>
@@ -237,6 +269,9 @@ textarea#inputMensaje{
       Elegí un cargo del directorio para conversar. Cada uno mantiene su propio historial y su propio modelo.
       Este modo es puramente educativo/teórico — no hay acceso a datos reales del Fondo de Emergencia ni del Portafolio.
     </p>
+    <div style="margin:14px 0;">
+      <button class="btn-blue" onclick="entrarRevisionCartera()">📊 Revisión de Cartera (datos reales)</button>
+    </div>
     <div class="grid-cargos" id="gridCargos"></div>
   </div>
 
@@ -257,6 +292,39 @@ textarea#inputMensaje{
     <div class="input-row">
       <textarea id="inputMensaje" placeholder="Escribí tu mensaje... (Enter para enviar, Shift+Enter para salto de línea)"></textarea>
       <button class="btn-green" id="btnEnviar" onclick="enviarMensaje()">Enviar</button>
+    </div>
+  </div>
+
+  <!-- ============ VISTA REVISIÓN DE CARTERA (Tanda 4b) ============ -->
+  <div id="revisionView">
+    <button class="btn-ghost" onclick="volverSelectorDesdeRevision()">← Volver al directorio</button>
+    <h2 style="color:var(--blue);">📊 Revisión de Cartera</h2>
+    <p style="color:var(--muted);font-size:0.85rem;">
+      Este modo lee datos REALES del Fondo de Emergencia y del Portafolio de Pedro (solo lectura, nunca escribe nada de vuelta en Firebase).
+      Se dispara manualmente — no hay refresco automático ni en background.
+    </p>
+    <div id="revisionLoginBox"></div>
+    <div id="revisionContenido" style="display:none;">
+      <div class="revision-meta" id="revisionFechaHora"></div>
+      <div id="resumenVisual"></div>
+      <div style="margin:16px 0;">
+        <button class="btn-green" onclick="generarComentariosDirectorio()">Generar comentarios del directorio</button>
+      </div>
+      <div class="grid-cargos" id="comentariosCargos"></div>
+
+      <div class="chat-libre-revision">
+        <h3>Chat libre sobre esta revisión</h3>
+        <select id="selectCargoRevision"></select>
+        <div class="chat-box" id="chatBoxRevision"></div>
+        <div class="input-row">
+          <textarea id="inputMensajeRevision" placeholder="Preguntá algo sobre estos datos... (Enter para enviar, Shift+Enter para salto de línea)"></textarea>
+          <button class="btn-green" id="btnEnviarRevision" onclick="enviarMensajeRevision()">Enviar</button>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <button class="btn-blue" onclick="exportarInformeRevision()">📄 Exportar informe</button>
+      </div>
     </div>
   </div>
 
@@ -553,7 +621,7 @@ async function callClaudeRaw(model, maxTokens, systemPrompt, messages){
   }
 }
 
-// ============ ARMADO DE SYSTEM PROMPT (bloque común + específico + charter) ============
+// ============ ARMADO DE SYSTEM PROMPT (bloque común + específico + charter) — MODO TUTOR 4a ============
 function buildSystemPrompt(cargo){
   const st = cargoState[cargo.id];
   const encabezado = COMMON_PROMPT_BLOCK.replace('[NOMBRE DEL CARGO]', cargo.nombre);
@@ -646,7 +714,7 @@ function detectarModoExamen(cargo, textoUsuario){
   if(t.includes('salir del examen')) st.examMode = false;
 }
 
-// ============ ENVÍO DE MENSAJE ============
+// ============ ENVÍO DE MENSAJE (CHAT TUTOR 4a) ============
 async function enviarMensaje(){
   if(!cargoActual) return;
   const cargo = CARGOS.find(c=>c.id===cargoActual);
@@ -692,15 +760,19 @@ async function enviarMensaje(){
   renderChat();
 }
 
-// Enter para enviar (Shift+Enter = salto de línea)
+// Enter para enviar (Shift+Enter = salto de línea) — aplica a chat de 4a y chat libre de 4b
 document.addEventListener('keydown', function(e){
   if(e.target && e.target.id === 'inputMensaje' && e.key === 'Enter' && !e.shiftKey){
     e.preventDefault();
     enviarMensaje();
   }
+  if(e.target && e.target.id === 'inputMensajeRevision' && e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    enviarMensajeRevision();
+  }
 });
 
-// ============ EXPORT DE SESIÓN A MARKDOWN (por cargo) ============
+// ============ EXPORT DE SESIÓN A MARKDOWN (por cargo, modo tutor 4a) ============
 function downloadFile(filename, content, mime){
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
@@ -734,7 +806,7 @@ function exportarSesionActual(){
   exportarSesionMarkdown(cargo.nombre, st.history);
 }
 
-// ============ BACKUP / RESTORE JSON DE LAS 5 CONVERSACIONES ============
+// ============ BACKUP / RESTORE JSON DE LAS 5 CONVERSACIONES (modo tutor 4a) ============
 function exportarBackup(){
   const cargosBackup = {};
   CARGOS.forEach(c=>{
@@ -788,6 +860,643 @@ function importarBackup(event){
     if(cargoActual){ renderChat(); } else { renderSelector(); }
   };
   reader.readAsText(file);
+}
+
+// ================================================================================
+// ============ MODO REVISIÓN DE CARTERA (Tanda 4b) — SOLO LECTURA DE FIREBASE ============
+// ================================================================================
+
+// ============ CONFIG FIREBASE (idéntica a index.html — mismo proyecto, solo lectura) ============
+const FB_CFG = {
+  apiKey:            "AIzaSyBDkqXKdtFRs1On4kw0lP3Bk897esslmoM",
+  authDomain:        "zarfinance.firebaseapp.com",
+  databaseURL:       "https://zarfinance-default-rtdb.firebaseio.com",
+  projectId:         "zarfinance",
+  storageBucket:     "zarfinance.firebasestorage.app",
+  messagingSenderId: "210001894365",
+  appId:             "1:210001894365:web:1d9b27f0c3340ed71ef434"
+};
+const UID_AUTORIZADO = 'JsW7CjDObEhn3DoFkwzuJUGLhrB3';
+const CLIENTE_ID = 'pedro';
+function pathBuckets(){ return `clientes/${CLIENTE_ID}/vanguard/fondoEmergencia/buckets`; }
+function pathHoldings(){ return `clientes/${CLIENTE_ID}/vanguard/portafolio/holdings`; }
+function pathAportes(bucketId){ return `${pathBuckets()}/${bucketId}/aportes`; }
+const ORDEN_BUCKETS = ['desempleo','accidentesFisicos','multasLegales','otros'];
+const META_TOTAL_FONDO_EMERGENCIA = 3600000; // piso fijo, no techo (spec sección 8)
+
+// db/auth -- idéntico a index.html. initFirebaseWithRetry los asigna.
+let db = null, auth = null;
+// Estado de la foto de esta revisión -- se llenan UNA VEZ al entrar a revisionView, nunca con
+// listeners en vivo.
+let BUCKETS_LIVE = {}, APORTES_LIVE = {}, HOLDINGS_LIVE = {};
+
+// Formato de moneda -- idéntico a index.html, no reinventar el separador de miles.
+const fmt = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-AR');
+
+// Arranque con reintento -- copiado literal, NO reescribir la lógica de reintento.
+function initFirebaseWithRetry(retries = 10, delayMs = 300){
+  return new Promise((resolve, reject) => {
+    function attempt(n){
+      try{
+        if (typeof firebase === 'undefined') throw new Error('SDK de Firebase no cargó todavía');
+        if (!firebase.apps.length) firebase.initializeApp(FB_CFG);
+        db = firebase.database();
+        auth = firebase.auth();
+        resolve();
+      } catch(e){
+        if (n <= 0){ reject(e); return; }
+        setTimeout(() => attempt(n - 1), delayMs);
+      }
+    }
+    attempt(retries);
+  });
+}
+
+// ============ FASE DEL GLIDE PATH — copiada literal de index.html ============
+function faseGlidePath(pct){
+  if (pct < 40){
+    return { fase: 'acumulacion', etiqueta: 'Acumulación', colorVar: '--blue',
+      nota: 'Meta lejos: algo de rendimiento tolerado (plazo fijo corto, money market).' };
+  }
+  if (pct < 75){
+    return { fase: 'transicion', etiqueta: 'Transición', colorVar: '--amber',
+      nota: 'Aportes nuevos y parte de lo acumulado migran a liquidez.' };
+  }
+  return { fase: 'liquidez_total', etiqueta: 'Liquidez total', colorVar: '--green',
+    nota: 'Meta alcanzada o superada: liquidez total, revisión continua (nunca "termina").' };
+}
+
+// ============ VALOR DE MERCADO DE UN HOLDING — copiado literal de index.html ============
+function valorMercadoHolding(h){
+  if (h.tipo === 'variable'){
+    return (parseFloat(h.cantidad)||0) * (parseFloat(h.precioUltimo)||0);
+  }
+  return parseFloat(h.precio) || 0;
+}
+
+// ============ VALUACIÓN DE RENTA FIJA (TIR exacta + duración + convexidad) — copiado literal de index.html ============
+function calcularValuacionRentaFija(h){
+  const nominal = Number(h.nominal) || 0;
+  const precio  = Number(h.precio) || 0;
+  const cuponAnual = Number(h.cuponAnual) || 0;
+  const frecuencia = Number(h.frecuenciaCupon) || 1;
+  const hoy = new Date();
+  const venc = new Date(h.fechaVencimiento);
+  const anios = Math.max((venc - hoy) / (1000*60*60*24*365.25), 0.01);
+  const cuponPeriodo = (cuponAnual/100 * nominal) / frecuencia;
+  const nPeriodos = anios * frecuencia;
+  const ytmAprox = ((cuponPeriodo*frecuencia) + (nominal - precio)/anios) / ((nominal+precio)/2) * 100;
+  function precioDado(ytmPeriodo){
+    let vp = 0;
+    for(let t=1;t<=nPeriodos;t++){ vp += cuponPeriodo / Math.pow(1+ytmPeriodo, t); }
+    vp += nominal / Math.pow(1+ytmPeriodo, nPeriodos);
+    return vp;
+  }
+  let lo = 0.00001, hi = 1;
+  for(let i=0;i<100;i++){
+    const mid = (lo+hi)/2;
+    const p = precioDado(mid);
+    if(p > precio) lo = mid; else hi = mid;
+  }
+  const ytmPeriodo = (lo+hi)/2;
+  const ytmExacto = ytmPeriodo * frecuencia * 100;
+  let sumaPonderada = 0;
+  for(let t=1;t<=nPeriodos;t++){
+    const flujo = (t === nPeriodos) ? cuponPeriodo + nominal : cuponPeriodo;
+    sumaPonderada += (t/frecuencia) * flujo / Math.pow(1+ytmPeriodo, t);
+  }
+  const macaulay = sumaPonderada / precio;
+  const modificada = macaulay / (1 + ytmPeriodo);
+  let sumaConvexidad = 0;
+  for(let t=1;t<=nPeriodos;t++){
+    const flujo = (t === nPeriodos) ? cuponPeriodo + nominal : cuponPeriodo;
+    sumaConvexidad += flujo * t * (t+1) / Math.pow(1+ytmPeriodo, t+2);
+  }
+  const convexidad = sumaConvexidad / (precio * Math.pow(frecuencia,2));
+  const spread = h.refTasa != null ? (ytmExacto - Number(h.refTasa)) : null;
+  return { ytmExacto, ytmAprox, macaulay, modificada, convexidad, spread, anios };
+}
+
+// ============ REGLA DE SUAVIZADO DE APORTES (3 funciones, copiadas literal LAS TRES JUNTAS) ============
+const TASA_OBJETIVO = 0.10;
+const BANDA_MIN = 0.10;
+const BANDA_MAX = 0.15;
+const VENTANA_MESES = 3;
+
+async function ingresoPromedioReciente(){
+  const hoy = new Date();
+  let total = 0, meses = 0;
+  for (let i = 0; i < VENTANA_MESES; i++){
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0');
+    const snap = await db.ref(`ingresos/${UID_AUTORIZADO}/${y}/${m}`).once('value');
+    const entradas = Object.values(snap.val() || {});
+    const totalMes = entradas
+      .filter(e => (e.moneda || 'ARS') === 'ARS')
+      .reduce((s, e) => s + (Number(e.monto) || 0), 0);
+    total += totalMes;
+    meses++;
+  }
+  return meses > 0 ? total / meses : 0;
+}
+
+function aporteMesAnterior(){
+  const hoy = new Date();
+  const prev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+  const yPrev = prev.getFullYear(), mPrev = String(prev.getMonth() + 1).padStart(2, '0');
+  let total = 0;
+  ORDEN_BUCKETS.forEach(bucketId => {
+    Object.values(APORTES_LIVE[bucketId] || {}).forEach(a => {
+      if (a.fecha && a.fecha.startsWith(`${yPrev}-${mPrev}`)) total += Number(a.monto) || 0;
+    });
+  });
+  return total;
+}
+
+async function calcularAporteSugerido(){
+  const ingresoProm = await ingresoPromedioReciente();
+  const objetivo = ingresoProm * TASA_OBJETIVO;
+  const anterior = aporteMesAnterior();
+  const base = anterior > 0 ? (0.8 * anterior + 0.2 * objetivo) : objetivo;
+  const piso = ingresoProm * BANDA_MIN;
+  const techo = ingresoProm * BANDA_MAX;
+  const sugeridoTotal = Math.min(Math.max(base, piso), techo);
+  const metaTotal = ORDEN_BUCKETS.reduce((s, id) => s + (BUCKETS_LIVE[id] ? Number(BUCKETS_LIVE[id].metaARS) || 0 : 0), 0);
+  const porBucket = {};
+  ORDEN_BUCKETS.forEach(id => {
+    const metaBucket = BUCKETS_LIVE[id] ? Number(BUCKETS_LIVE[id].metaARS) || 0 : 0;
+    const peso = metaTotal > 0 ? metaBucket / metaTotal : 0;
+    porBucket[id] = sugeridoTotal * peso;
+  });
+  return { ingresoProm, sugeridoTotal, porBucket };
+}
+
+// Auxiliar propio de 4b (no toca las 3 funciones de arriba): aporte real de UN bucket el mes pasado.
+function aporteMesAnteriorBucket(bucketId){
+  const hoy = new Date();
+  const prev = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+  const yPrev = prev.getFullYear(), mPrev = String(prev.getMonth() + 1).padStart(2, '0');
+  let total = 0;
+  Object.values(APORTES_LIVE[bucketId] || {}).forEach(a => {
+    if (a.fecha && a.fecha.startsWith(`${yPrev}-${mPrev}`)) total += Number(a.monto) || 0;
+  });
+  return total;
+}
+
+// ============ NOMBRES LEGIBLES DE BUCKETS ============
+const NOMBRES_BUCKETS = {
+  desempleo: 'Desempleo',
+  accidentesFisicos: 'Accidentes físicos',
+  multasLegales: 'Multas/imprevistos legales',
+  otros: 'Otros'
+};
+
+// ============ FORMATO DE FECHA/HORA (foto de la revisión) ============
+function formatearFechaHora(d){
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// ============ ESTADO GLOBAL DE LA REVISIÓN ============
+let modoRevisionActivo = false;
+let RESUMEN_CARTERA = null;
+let RESUMEN_CARTERA_TEXTO = '';
+let RESUMEN_DIRECTOR_TEXTO = '';
+let comentariosDirectorio = {}; // { cargoId: {texto} | {error} }
+const revisionChatState = {};
+CARGOS.forEach(c=>{ revisionChatState[c.id] = { history: [], isLoading: false }; });
+let cargoRevisionActual = null;
+
+// ============ ARMADO DEL RESUMEN (lectura .once('value'), foto puntual, NUNCA listener en vivo) ============
+async function armarResumenCartera(){
+  const bucketsSnap = await db.ref(pathBuckets()).once('value');
+  BUCKETS_LIVE = bucketsSnap.val() || {};
+
+  APORTES_LIVE = {};
+  for(const bucketId of ORDEN_BUCKETS){
+    const snap = await db.ref(pathAportes(bucketId)).once('value');
+    APORTES_LIVE[bucketId] = snap.val() || {};
+  }
+
+  const holdingsSnap = await db.ref(pathHoldings()).once('value');
+  HOLDINGS_LIVE = holdingsSnap.val() || {};
+
+  let totalAcumuladoFondo = 0;
+  const buckets = ORDEN_BUCKETS.map(id=>{
+    const b = BUCKETS_LIVE[id] || {};
+    const meta = Number(b.metaARS) || 0;
+    const acumulado = Object.values(APORTES_LIVE[id] || {}).reduce((s,a)=>s + (Number(a.monto)||0), 0);
+    totalAcumuladoFondo += acumulado;
+    const pct = meta > 0 ? (acumulado/meta*100) : 0;
+    const fase = faseGlidePath(pct);
+    return { id, nombre: NOMBRES_BUCKETS[id] || id, meta, acumulado, pct, faseEtiqueta: fase.etiqueta };
+  });
+  const superavitFondo = Math.max(totalAcumuladoFondo - META_TOTAL_FONDO_EMERGENCIA, 0);
+
+  const holdingsArr = Object.entries(HOLDINGS_LIVE).map(([id,h])=>({ id, ...h }));
+  let valorTotalPortafolio = 0, valorRentaFija = 0, valorVariable = 0;
+  const holdings = holdingsArr.map(h=>{
+    const valor = valorMercadoHolding(h);
+    valorTotalPortafolio += valor;
+    if(h.tipo === 'variable') valorVariable += valor; else valorRentaFija += valor;
+    let valuacion = null;
+    if(h.tipo === 'rentaFija' && h.nominal && h.precio && h.cuponAnual != null && h.frecuenciaCupon && h.fechaVencimiento){
+      try{ valuacion = calcularValuacionRentaFija(h); }catch(e){ valuacion = null; }
+    }
+    return { ...h, valor, valuacion };
+  });
+  const pctRentaFija = valorTotalPortafolio > 0 ? (valorRentaFija/valorTotalPortafolio*100) : 0;
+  const pctVariable = valorTotalPortafolio > 0 ? (valorVariable/valorTotalPortafolio*100) : 0;
+
+  const fechaHoraTexto = formatearFechaHora(new Date());
+
+  RESUMEN_CARTERA = {
+    totalAcumuladoFondo, superavitFondo, buckets,
+    valorTotalPortafolio, valorRentaFija, valorVariable, pctRentaFija, pctVariable,
+    holdings, fechaHoraTexto
+  };
+
+  RESUMEN_CARTERA_TEXTO = generarTextoResumenCartera(RESUMEN_CARTERA);
+
+  // Datos adicionales SOLO para el Director/a de Oficina de Inversiones — nunca se manda a los otros 4.
+  const sugerido = await calcularAporteSugerido();
+  RESUMEN_DIRECTOR_TEXTO = generarTextoResumenDirector(sugerido);
+}
+
+// ============ SERIALIZACIÓN A TEXTO PLANO (nivel de detalle fijo, no JSON crudo) ============
+function generarTextoResumenCartera(r){
+  let txt = `=== FONDO DE EMERGENCIA (piso ${fmt(META_TOTAL_FONDO_EMERGENCIA)}, no techo) ===\n`;
+  txt += `Total acumulado: ${fmt(r.totalAcumuladoFondo)}`;
+  if(r.superavitFondo > 0){ txt += ` · Superávit: ${fmt(r.superavitFondo)}`; }
+  txt += `\n`;
+  r.buckets.forEach(b=>{
+    txt += `${b.nombre}: ${fmt(b.acumulado)} / ${fmt(b.meta)} (${b.pct.toFixed(1)}%) — Fase: ${b.faseEtiqueta}\n`;
+  });
+  txt += `\n=== PORTAFOLIO (Cocos Capital) ===\n`;
+  txt += `Valor total: ${fmt(r.valorTotalPortafolio)} · Composición: RF ${fmt(r.valorRentaFija)} (${r.pctRentaFija.toFixed(1)}%) / Variable ${fmt(r.valorVariable)} (${r.pctVariable.toFixed(1)}%)\n`;
+  r.holdings.forEach(h=>{
+    if(h.tipo === 'rentaFija'){
+      if(h.valuacion){
+        txt += `${h.nombre} (${h.moneda}): nominal ${fmt(h.nominal)}, precio ${fmt(h.precio)}, TIR ${h.valuacion.ytmExacto.toFixed(2)}%, Dur. ${h.valuacion.modificada.toFixed(2)}a, vto. ${h.fechaVencimiento}\n`;
+      } else {
+        txt += `${h.nombre} (${h.moneda}): datos incompletos para calcular TIR/duración — nominal ${fmt(h.nominal||0)}, precio ${fmt(h.precio||0)}, cupón ${h.cuponAnual!=null?h.cuponAnual:'?'}%, vto. ${h.fechaVencimiento||'?'}\n`;
+      }
+    } else {
+      txt += `${h.nombre} (${h.moneda}): ${h.cantidad}u @ ${fmt(h.precioUltimo)}, valor ${fmt(h.valor)}\n`;
+    }
+  });
+  txt += `\nFoto armada: ${r.fechaHoraTexto}\n`;
+  return txt;
+}
+
+function generarTextoResumenDirector(sugerido){
+  let txt = `=== DATOS ADICIONALES PARA DIRECTOR/A DE OFICINA DE INVERSIONES (solo para este cargo) ===\n`;
+  txt += `Aporte total sugerido este mes (regla de suavizado 80/20, banda 10%-15% del ingreso promedio): ${fmt(sugerido.sugeridoTotal)}\n`;
+  ORDEN_BUCKETS.forEach(id=>{
+    const sugeridoBucket = sugerido.porBucket[id] || 0;
+    const aporteReal = aporteMesAnteriorBucket(id);
+    let comparacion = 'sin aporte registrado el mes pasado';
+    if(aporteReal > 0){
+      if(aporteReal > sugeridoBucket * 1.05) comparacion = 'por encima del sugerido';
+      else if(aporteReal < sugeridoBucket * 0.95) comparacion = 'por debajo del sugerido';
+      else comparacion = 'en línea con el sugerido';
+    }
+    txt += `${NOMBRES_BUCKETS[id] || id}: sugerido ${fmt(sugeridoBucket)} — aporte real del mes anterior: ${aporteReal>0?fmt(aporteReal):'sin registros'} (${comparacion})\n`;
+  });
+  return txt;
+}
+
+// ============ SYSTEM PROMPT — RAMA MODO REVISIÓN (extiende el "specific" de 4a, no lo reemplaza) ============
+function buildSystemPromptRevision(cargo){
+  let prompt = `Sos ${cargo.nombre} del directorio de "ZAR Vanguard Capital Partners", el fondo personal de Pedro.
+
+Estás en MODO REVISIÓN DE CARTERA. SOLO podés hablar de los números que aparecen en RESUMEN_CARTERA_TEXTO abajo. Si Pedro pregunta algo que no está en ese resumen, decilo explícitamente en vez de inventar un número o generalizar con teoría.
+
+LÍMITE DE INGRESOS: ningún cargo, ni siquiera en este modo con datos reales, opina sobre el ingreso o la productividad de Pedro. El resumen general NUNCA incluye ingresos, solo composición y desempeño de los activos ya asignados al fondo.
+
+PRIORIDAD PEDAGÓGICA EN ESTE MODO: la prioridad es CÓMO interpretás y comunicás el dato, no la corrección técnica del cálculo — eso ya lo resuelve el dashboard antes de llegar acá.
+
+TU ROL ESPECÍFICO (misma base que en modo teórico, aplicada ahora a datos reales de esta revisión puntual):
+${cargo.specific}
+
+SOBRE EL CHARTER: podés citarlo textual, nunca inventes contenido que no esté literal en el bloque pegado al final.
+
+TAG DE MODELO: al final de CADA respuesta, indicá [[NEXT_MODEL:haiku]] para preguntas simples, [[NEXT_MODEL:sonnet]] para análisis profundo, u [[NEXT_MODEL:opus]] solo si Pedro pide máxima profundidad.`;
+
+  if(cargo.id === 'risk'){
+    prompt += `
+
+SOS EL RISK OFFICER EN MODO REVISIÓN REAL: acá SÍ corrés el ORSA simplificado en serio, respondiendo cada una de las 4 preguntas del charter (sección 5) evaluando el RESUMEN_CARTERA_TEXTO dado, no enumerándolas como concepto teórico:
+1. ¿Cuáles son los riesgos hoy?
+2. ¿Cambió algo desde la última revisión?
+3. ¿La asignación real coincide con la fase del glide path?
+4. ¿Hace falta un plan de contingencia?
+
+IMPORTANTE sobre la pregunta 2: no tenés acceso a ninguna revisión anterior (este sistema no guarda ningún historial persistente de revisiones pasadas — el único registro es el informe que se exporta al final, y vos no tenés acceso a él). Para esa pregunta, decilo explícitamente así ("no tengo acceso a una revisión anterior para comparar") en vez de inventar que no hubo cambios.`;
+  }
+
+  if(cargo.id === 'director'){
+    prompt += `
+
+ENDURECIMIENTO ESPECÍFICO PARA VOS (Director/a de Oficina de Inversiones): además de todo lo anterior, tenés PROHIBIDO explícitamente:
+(a) calificar el aporte sugerido como "bajo" o "alto" en relación a lo que Pedro "debería" ganar,
+(b) sacar conclusiones sobre su desempeño como trader/estudiante a partir del monto,
+(c) especular sobre ingresos futuros,
+(d) intentar inferir o mencionar el ingreso de Pedro a partir del aporte sugerido — con la fórmula completa de la regla en este mismo system prompt y el monto sugerido a la vista, el ingreso es derivable en uno o dos pasos de álgebra, y esa inferencia está tan prohibida como si el número viniera directo del resumen. El aporte sugerido es un insumo para comentar la regla, no un canal para reconstruir el ingreso — si un comentario solo tiene sentido mencionando o dando a entender el nivel de ingreso, no lo hagas.
+
+Tu comentario se limita a: si el aporte real de cada bucket está en línea, por encima o por debajo del sugerido, y a la mecánica de la regla en sí (suavizado 80/20, banda 10%-15%, reparto proporcional a las metas) — nunca al ingreso que la originó, ni siquiera inferido.
+
+REGLA COMPLETA (para que puedas explicar la mecánica, sin usarla para inferir el ingreso real): aporte_sugerido = clamp(0.8 * aporte_mes_anterior + 0.2 * (ingreso_promedio * 10%), piso=ingreso_promedio*10%, techo=ingreso_promedio*15%), repartido proporcionalmente a la meta de cada bucket. Tenés a la vista el bloque RESUMEN_DIRECTOR_TEXTO con el resultado ya calculado (sugeridoTotal y por bucket) — nunca el ingreso promedio en sí.`;
+  }
+
+  prompt += `\n\n--- CHARTER DEL DIRECTORIO (fuente autorizada) ---\n\n${CHARTER_TEXT}`;
+  prompt += `\n\n--- RESUMEN_CARTERA_TEXTO (foto real de esta revisión, fuente autorizada de datos) ---\n\n${RESUMEN_CARTERA_TEXTO}`;
+  if(cargo.id === 'director'){
+    prompt += `\n\n--- RESUMEN_DIRECTOR_TEXTO (solo para vos, ningún otro cargo lo ve) ---\n\n${RESUMEN_DIRECTOR_TEXTO}`;
+  }
+  return prompt;
+}
+
+// ============ NAVEGACIÓN HACIA/DESDE LA VISTA DE REVISIÓN ============
+function entrarRevisionCartera(){
+  document.getElementById('selectorView').style.display = 'none';
+  document.getElementById('chatView').style.display = 'none';
+  document.getElementById('revisionView').style.display = 'block';
+  document.getElementById('revisionContenido').style.display = 'none';
+  modoRevisionActivo = true;
+  iniciarLoginRevision();
+}
+
+function volverSelectorDesdeRevision(){
+  document.getElementById('revisionView').style.display = 'none';
+  document.getElementById('selectorView').style.display = 'block';
+  modoRevisionActivo = false;
+  renderSelector();
+  chequearApiKey();
+}
+
+// ============ LOGIN GOOGLE (solo lectura, mismo UID que index.html) ============
+async function iniciarLoginRevision(){
+  const box = document.getElementById('revisionLoginBox');
+  box.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">Conectando con Firebase...</p>';
+  try{
+    await initFirebaseWithRetry();
+  }catch(e){
+    box.innerHTML = '<div class="aviso-key">⚠️ No se pudo conectar a Firebase: ' + e.message + '</div>';
+    return;
+  }
+  auth.onAuthStateChanged(async function(user){
+    if(!modoRevisionActivo) return;
+    if(!user){
+      box.innerHTML = '<button class="btn-blue" onclick="loginGoogleRevision()">Iniciar sesión con Google</button>';
+      document.getElementById('revisionContenido').style.display = 'none';
+      return;
+    }
+    if(user.uid !== UID_AUTORIZADO){
+      box.innerHTML = '<div class="aviso-key">⚠️ Esta cuenta de Google no está autorizada para ver la cartera real de Pedro.</div>';
+      document.getElementById('revisionContenido').style.display = 'none';
+      return;
+    }
+    box.innerHTML = '<p style="color:var(--green);font-size:0.85rem;">✅ Sesión iniciada con la cuenta autorizada.</p>';
+    document.getElementById('revisionContenido').style.display = 'block';
+    await cargarYArmarResumen();
+  });
+}
+
+function loginGoogleRevision(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(err=>{
+    alert('Error de login: ' + err.message);
+  });
+}
+
+// ============ CARGA Y RENDER DEL RESUMEN ============
+async function cargarYArmarResumen(){
+  // cada entrada a la revisión arma una foto nueva — se resetean comentarios y chat libre anteriores
+  comentariosDirectorio = {};
+  CARGOS.forEach(c=>{ revisionChatState[c.id] = { history: [], isLoading: false }; });
+  document.getElementById('comentariosCargos').innerHTML = '';
+  document.getElementById('resumenVisual').innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">Cargando datos reales de Firebase...</p>';
+  try{
+    await armarResumenCartera();
+  }catch(e){
+    document.getElementById('resumenVisual').innerHTML = '<div class="aviso-key">⚠️ Error al leer datos de Firebase: ' + e.message + '</div>';
+    return;
+  }
+  renderResumenVisual();
+}
+
+function renderResumenVisual(){
+  document.getElementById('revisionFechaHora').textContent = 'Foto armada: ' + RESUMEN_CARTERA.fechaHoraTexto + ' — no se refresca sola durante la sesión.';
+
+  let html = '<h3 style="color:var(--blue);">Fondo de Emergencia</h3>';
+  html += `<p>Total acumulado: <b>${fmt(RESUMEN_CARTERA.totalAcumuladoFondo)}</b> (piso ${fmt(META_TOTAL_FONDO_EMERGENCIA)}, no techo)`;
+  if(RESUMEN_CARTERA.superavitFondo > 0){ html += ` · Superávit: <b style="color:var(--green);">${fmt(RESUMEN_CARTERA.superavitFondo)}</b>`; }
+  html += '</p>';
+  html += '<div class="grid-cargos">';
+  RESUMEN_CARTERA.buckets.forEach(b=>{
+    html += `<div class="card"><h3>${b.nombre}</h3><p>${fmt(b.acumulado)} / ${fmt(b.meta)}</p><div class="estado">${b.pct.toFixed(1)}% — Fase: ${b.faseEtiqueta}</div></div>`;
+  });
+  html += '</div>';
+
+  html += '<h3 style="color:var(--blue);margin-top:22px;">Portafolio (Cocos Capital)</h3>';
+  html += `<p>Valor total: <b>${fmt(RESUMEN_CARTERA.valorTotalPortafolio)}</b> · RF ${fmt(RESUMEN_CARTERA.valorRentaFija)} (${RESUMEN_CARTERA.pctRentaFija.toFixed(1)}%) / Variable ${fmt(RESUMEN_CARTERA.valorVariable)} (${RESUMEN_CARTERA.pctVariable.toFixed(1)}%)</p>`;
+  html += '<div class="grid-cargos">';
+  RESUMEN_CARTERA.holdings.forEach(h=>{
+    let detalle = '';
+    if(h.tipo === 'rentaFija'){
+      detalle = h.valuacion
+        ? `TIR ${h.valuacion.ytmExacto.toFixed(2)}% · Dur. ${h.valuacion.modificada.toFixed(2)}a`
+        : 'Datos incompletos para calcular TIR/duración';
+    } else {
+      detalle = `${h.cantidad}u @ ${fmt(h.precioUltimo)}`;
+    }
+    html += `<div class="card"><h3>${h.nombre} (${h.moneda})</h3><p>${detalle}</p><div class="estado">${fmt(h.valor)}</div></div>`;
+  });
+  html += '</div>';
+
+  document.getElementById('resumenVisual').innerHTML = html;
+
+  poblarSelectCargoRevision();
+  renderChatRevision();
+}
+
+// ============ GENERACIÓN SECUENCIAL DE COMENTARIOS (una llamada por cargo, NUNCA en paralelo) ============
+async function generarComentariosDirectorio(){
+  const cont = document.getElementById('comentariosCargos');
+  cont.innerHTML = '';
+  comentariosDirectorio = {};
+
+  for(const cargo of CARGOS){
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.id = 'comentario-' + cargo.id;
+    div.innerHTML = `<h3>${cargo.nombre}</h3><p style="font-style:italic;color:var(--muted);">Generando comentario...</p>`;
+    cont.appendChild(div);
+
+    const systemPrompt = buildSystemPromptRevision(cargo);
+    const model = modelMap[cargoState[cargo.id].modelKey] || modelMap.sonnet;
+    const resp = await callClaudeRaw(model, 4096, systemPrompt, [{ role:'user', content:'Dame tu lectura de estos datos según tu rol.' }]);
+
+    if(!resp || resp.error){
+      const msgError = resp ? resp.error : 'Sin respuesta (verificá la API Key).';
+      comentariosDirectorio[cargo.id] = { error: msgError };
+      div.innerHTML = `<h3>${cargo.nombre}</h3><p style="color:var(--red);">⚠️ No generado (error de API): ${msgError}</p>`;
+      continue;
+    }
+
+    const match = modelRegex.exec(resp.text);
+    if(match){ cargoState[cargo.id].modelKey = match[1]; }
+    const clean = resp.text.replace(modelRegex, '').trim();
+    comentariosDirectorio[cargo.id] = { texto: clean };
+    div.innerHTML = `<h3>${cargo.nombre}</h3><p style="white-space:pre-wrap;color:var(--txt);">${clean}</p>`;
+  }
+}
+
+// ============ CHAT LIBRE SOBRE LA REVISIÓN (selector de cargo, mismo motor de llamada) ============
+function poblarSelectCargoRevision(){
+  const sel = document.getElementById('selectCargoRevision');
+  sel.innerHTML = '';
+  CARGOS.forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.nombre;
+    sel.appendChild(opt);
+  });
+  sel.value = CARGOS[0].id;
+  cargoRevisionActual = CARGOS[0].id;
+  sel.onchange = function(){
+    cargoRevisionActual = sel.value;
+    renderChatRevision();
+  };
+}
+
+function renderChatRevision(){
+  if(!cargoRevisionActual) return;
+  const cargo = CARGOS.find(c=>c.id===cargoRevisionActual);
+  const st = revisionChatState[cargoRevisionActual];
+  const box = document.getElementById('chatBoxRevision');
+  box.innerHTML = '';
+  st.history.forEach(m=>{
+    const div = document.createElement('div');
+    div.className = 'msg ' + (m.role==='user' ? 'user' : 'assistant');
+    div.textContent = m.content;
+    box.appendChild(div);
+  });
+  if(st.isLoading){
+    const div = document.createElement('div');
+    div.className = 'msg pensando';
+    div.textContent = cargo.nombre + ' está pensando...';
+    box.appendChild(div);
+  }
+  box.scrollTop = box.scrollHeight;
+  document.getElementById('btnEnviarRevision').disabled = st.isLoading;
+}
+
+async function enviarMensajeRevision(){
+  if(!cargoRevisionActual) return;
+  const cargo = CARGOS.find(c=>c.id===cargoRevisionActual);
+  const st = revisionChatState[cargoRevisionActual];
+  const input = document.getElementById('inputMensajeRevision');
+  const texto = input.value.trim();
+  if(!texto || st.isLoading) return;
+
+  const apiKey = localStorage.getItem('vanguardApiKey') || '';
+  if(!apiKey){ alert('Falta la API Key de Anthropic. Guardala primero en el dashboard principal (botón 🔑).'); return; }
+
+  st.history.push({ role:'user', content: texto });
+  input.value = '';
+  st.isLoading = true;
+  renderChatRevision();
+
+  const systemPrompt = buildSystemPromptRevision(cargo);
+  const model = modelMap[cargoState[cargo.id].modelKey] || modelMap.sonnet;
+  const messages = st.history.map(m=>({ role:m.role, content:m.content }));
+
+  const resp = await callClaudeRaw(model, 4096, systemPrompt, messages);
+  st.isLoading = false;
+
+  if(!resp){
+    renderChatRevision();
+    return;
+  }
+  if(resp.error){
+    st.history.push({ role:'assistant', content: '⚠️ Error al consultar: ' + resp.error });
+    renderChatRevision();
+    return;
+  }
+
+  const match = modelRegex.exec(resp.text);
+  if(match){ cargoState[cargo.id].modelKey = match[1]; }
+  const clean = resp.text.replace(modelRegex, '').trim();
+  st.history.push({ role:'assistant', content: clean });
+  renderChatRevision();
+}
+
+// ============ EXPORTAR INFORME DE REVISIÓN (plantilla formal, distinta del export de sesión de 4a) ============
+function exportarInformeRevision(){
+  if(!RESUMEN_CARTERA){
+    alert('Todavía no se armó ningún resumen de cartera para exportar.');
+    return;
+  }
+  const fechaHoraTexto = RESUMEN_CARTERA.fechaHoraTexto;
+  let md = `# Informe de Revisión de Cartera — ZAR Vanguard Capital Partners\n\n`;
+  md += `**Fecha y hora de esta revisión: ${fechaHoraTexto}**\n\n`;
+  md += `> Todo lo que sigue es una foto de ese momento puntual — no son datos en vivo. Si esta sesión se interrumpió y se retomó horas después, el resumen y este informe siguen siendo los del momento en que se armó la foto.\n\n`;
+
+  md += `## Composición y desempeño\n\n`;
+  md += `### Fondo de Emergencia\n\n`;
+  md += `Total acumulado: ${fmt(RESUMEN_CARTERA.totalAcumuladoFondo)} (piso ${fmt(META_TOTAL_FONDO_EMERGENCIA)}, no techo)`;
+  if(RESUMEN_CARTERA.superavitFondo > 0){ md += ` · Superávit: ${fmt(RESUMEN_CARTERA.superavitFondo)}`; }
+  md += `\n\n| Bucket | Acumulado | Meta | % | Fase |\n|---|---|---|---|---|\n`;
+  RESUMEN_CARTERA.buckets.forEach(b=>{
+    md += `| ${b.nombre} | ${fmt(b.acumulado)} | ${fmt(b.meta)} | ${b.pct.toFixed(1)}% | ${b.faseEtiqueta} |\n`;
+  });
+
+  md += `\n### Portafolio (Cocos Capital)\n\n`;
+  md += `Valor total: ${fmt(RESUMEN_CARTERA.valorTotalPortafolio)} · RF ${fmt(RESUMEN_CARTERA.valorRentaFija)} (${RESUMEN_CARTERA.pctRentaFija.toFixed(1)}%) / Variable ${fmt(RESUMEN_CARTERA.valorVariable)} (${RESUMEN_CARTERA.pctVariable.toFixed(1)}%)\n\n`;
+  md += `| Instrumento | Moneda | Detalle | Valor |\n|---|---|---|---|\n`;
+  RESUMEN_CARTERA.holdings.forEach(h=>{
+    let detalle = '';
+    if(h.tipo === 'rentaFija'){
+      detalle = h.valuacion
+        ? `TIR ${h.valuacion.ytmExacto.toFixed(2)}%, Dur. ${h.valuacion.modificada.toFixed(2)}a, vto. ${h.fechaVencimiento}`
+        : `datos incompletos (nominal ${fmt(h.nominal||0)}, cupón ${h.cuponAnual!=null?h.cuponAnual:'?'}%)`;
+    } else {
+      detalle = `${h.cantidad}u @ ${fmt(h.precioUltimo)}`;
+    }
+    md += `| ${h.nombre} | ${h.moneda} | ${detalle} | ${fmt(h.valor)} |\n`;
+  });
+
+  md += `\n## Comentarios del directorio\n\n`;
+  CARGOS.forEach(c=>{
+    const com = comentariosDirectorio[c.id];
+    md += `### ${c.nombre}\n\n`;
+    if(!com){
+      md += `— no generado (todavía no se corrió "Generar comentarios del directorio")\n\n`;
+    } else if(com.error){
+      md += `— no generado (error de API): ${com.error}\n\n`;
+    } else {
+      md += `${com.texto}\n\n`;
+    }
+  });
+
+  md += `\n## Conversación libre\n\n`;
+  let huboChat = false;
+  CARGOS.forEach(c=>{
+    const st = revisionChatState[c.id];
+    if(st.history.length){
+      huboChat = true;
+      md += `### Con ${c.nombre}\n\n`;
+      st.history.forEach(m=>{
+        md += `**${m.role==='user' ? 'Pedro' : c.nombre}:** ${m.content}\n\n`;
+      });
+    }
+  });
+  if(!huboChat){ md += '_No hubo conversación libre en esta sesión._\n\n'; }
+
+  const nombreArchivo = 'informe_revision_cartera_' + fechaHoraTexto.replace(/[: ]/g, '-') + '.md';
+  downloadFile(nombreArchivo, md, 'text/markdown');
 }
 
 // ============ INICIALIZACIÓN ============
