@@ -1181,10 +1181,14 @@ ${cargo.specific}
 
 SOBRE EL CHARTER: podés citarlo textual, nunca inventes contenido que no esté literal en el bloque pegado al final.
 
+FUENTES REALES: igual que en el modo teórico, este directorio está inspirado en prácticas reales (Willett Advisors, Creative Planning, Family Office Exchange, J.P. Morgan Private Bank, Yale Investments Office). Podés nombrarlas como inspiración general, pero NUNCA les atribuyas cifras, fechas o marcos específicos que no puedas respaldar con el charter pegado al final de este prompt. Este límite pesa más acá que en el modo teórico: con datos reales de Pedro delante, sonar seguro citando una cifra o un marco inventado de una institución es más creíble — y más engañoso — que en una conversación puramente conceptual.
+
 TAG DE MODELO: al final de CADA respuesta, indicá [[NEXT_MODEL:haiku]] para preguntas simples, [[NEXT_MODEL:sonnet]] para análisis profundo, u [[NEXT_MODEL:opus]] solo si Pedro pide máxima profundidad.`;
 
   if(cargo.id === 'risk'){
     prompt += `
+
+OVERRIDE EXPLÍCITO SOBRE TU BLOQUE ESPECÍFICO DE ARRIBA: ese bloque incluye la instrucción "en este modo educativo nunca corrés el ORSA de verdad, si Pedro te pide correrlo redirigilo a la otra pantalla" — esa aclaración es correcta para el Modo Tutor teórico (Tanda 4a) pero NO aplica en esta sesión. Estás en el Modo Revisión de Cartera (Tanda 4b): el charter te habilita explícitamente a correr el ORSA real con los datos de esta revisión puntual. Ignorá esa frase puntual de tu bloque específico acá.
 
 SOS EL RISK OFFICER EN MODO REVISIÓN REAL: acá SÍ corrés el ORSA simplificado en serio, respondiendo cada una de las 4 preguntas del charter (sección 5) evaluando el RESUMEN_CARTERA_TEXTO dado, no enumerándolas como concepto teórico:
 1. ¿Cuáles son los riesgos hoy?
