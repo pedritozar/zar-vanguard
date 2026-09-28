@@ -738,3 +738,55 @@ del botón "Generar comentarios del directorio".
 
 *Agregado por Claude Sonnet 5 -- 2026-09-28, a pedido de Pedro (confirmación cruzada con el chat de
 ZAR Finance).*
+
+
+## 2026-09-28 (cont. 2) — Contexto recibido sobre "Supervisión de Gestor Externo": no es un dashboard nuevo, es un módulo de oversight dentro de Vanguard
+
+Pedro trajo el contexto que faltaba (venía de una conversación previa con DeepSeek, documentada en
+un instructivo propio fechado 21/09/2026). Resumen de la idea, para que quede registrado aunque
+todavía no se construya nada:
+
+**El problema real:** Pedro administra (no opera él, lo ejecutan asesores financieros externos con
+comisión + suscripción mensual) dos carteras fuera del Fondo de Emergencia y de Cocos: la propia en
+el fondo Alfy (renta fija + variable, destino gastos/viajes/gustos -- no emergencia) y la de su
+madre (mismo esquema Alfy, cuenta a nombre de Borda, Gladis Mabel). Lo que Pedro hace es fijar
+reglas (SL/TP, exposición máxima, umbral de rotación a defensivos), monitorear, y avisar al asesor
+cuando se dispara una regla -- no ejecuta él mismo. Esta disciplina tiene nombre: *manager
+oversight* (práctica real de family offices que delegan ejecución y se quedan con la supervisión).
+
+**Encuadre ya cerrado (por DeepSeek + Pedro, antes de esta sesión):**
+- NO es un HTML/dashboard nuevo. Es un módulo dentro del ZAR Vanguard existente (a definir si vive
+  en `index.html` o en un tercer lugar -- `directorio_zar_vanguard.html` no parece el lugar, es el
+  tutor).
+- Nuevo cliente en el schema multi-cliente ya pensado desde la Tanda 1: `madre` (se suma a `pedro`).
+- NO reusar el diseño del Fondo de Emergencia (glide path, sub-buckets por contingencia) ni el de
+  Cocos (ejecución directa, perfil defensivo forzado) -- es un perfil distinto: objetivos
+  declarados + reglas de disparo + revisión programada.
+- 4 fases pensadas, en orden de complejidad creciente: (1) composición -- tipo de activo, moneda,
+  sector, con tortas; (2A) alertas por SL tocado / +15% alcanzado; (2B) alertas de drift vs.
+  objetivo (a aprender/experimentar); (3) aviso a Pedro primero, después borrador de comunicación
+  al asesor -- entendiendo el proceso de cómo se arma ese informe, no delegándolo ciego.
+- Respuestas de Pedro a las 3 preguntas de diseño de DeepSeek: (1) arrancar solo por composición;
+  (2) SL + 15% + drift; (3) avisar primero a Pedro, sumar después el borrador al asesor.
+
+**Obstáculo ya identificado para Fase 2A (no bloquea Fase 1):** Alfy da posición actual, no precio
+de entrada -- sin eso no hay SL/TP calculable. Pendiente de resolver antes de esa fase (cargar a
+mano, buscar export histórico, o aceptar que posiciones viejas arrancan sin SL/TP).
+
+**Preguntas abiertas sin cerrar (de la sección 5 del instructivo original):** en qué archivo vive el
+módulo, nombre de la lente, cómo se cargan los datos de Alfy (¿a mano? ¿captura con visión, mismo
+patrón que Cocos? ¿hay API?), si sector es realmente crítico para arrancar o es fase 2, frecuencia
+de revisión.
+
+**Pendiente mencionado por Pedro, sin traer todavía:** research propio en TradingView sobre algunos
+activos -- DeepSeek lo marcó como más importante que el módulo en sí (única pieza de validación
+externa legible por un tercero). A mirar con prioridad cuando llegue.
+
+**Estado real al cierre de esta sesión: sin construir nada todavía.** Se le devolvió a Pedro un gut
+check honesto -- la idea tiene sentido conceptual y el encuadre de DeepSeek es sólido, pero antes de
+meterle desarrollo (nuevo cliente Firebase, nueva UI) se le preguntó si prefiere primero validar
+Fase 1 de forma simple/manual (sin código) para confirmar que lo va a mantener actualizado, dado el
+volumen de proyectos paralelos que ya sostiene. Decisión de cómo arrancar: pendiente de su respuesta.
+
+*Agregado por Claude Sonnet 5 -- 2026-09-28, a pedido de Pedro (contexto del módulo "Supervisión de
+Gestor Externo" recibido y documentado).*
