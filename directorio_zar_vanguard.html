@@ -308,7 +308,7 @@ select#selectCargoRevision{
       <div class="revision-meta" id="revisionFechaHora"></div>
       <div id="resumenVisual"></div>
       <div style="margin:16px 0;">
-        <button class="btn-green" onclick="generarComentariosDirectorio()">Generar comentarios del directorio</button>
+        <button class="btn-green" id="btnGenerarComentarios" disabled onclick="generarComentariosDirectorio()">Generar comentarios del directorio</button>
       </div>
       <div class="grid-cargos" id="comentariosCargos"></div>
 
@@ -1284,12 +1284,14 @@ async function cargarYArmarResumen(){
   CARGOS.forEach(c=>{ revisionChatState[c.id] = { history: [], isLoading: false }; });
   document.getElementById('comentariosCargos').innerHTML = '';
   document.getElementById('resumenVisual').innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">Cargando datos reales de Firebase...</p>';
+  document.getElementById('btnGenerarComentarios').disabled = true;
   try{
     await armarResumenCartera();
   }catch(e){
     document.getElementById('resumenVisual').innerHTML = '<div class="aviso-key">⚠️ Error al leer datos de Firebase: ' + e.message + '</div>';
     return;
   }
+  document.getElementById('btnGenerarComentarios').disabled = false;
   renderResumenVisual();
 }
 
@@ -1330,6 +1332,10 @@ function renderResumenVisual(){
 
 // ============ GENERACIÓN SECUENCIAL DE COMENTARIOS (una llamada por cargo, NUNCA en paralelo) ============
 async function generarComentariosDirectorio(){
+  if(!RESUMEN_CARTERA_TEXTO){
+    alert('Los datos reales todavía se están cargando desde Firebase. Esperá unos segundos y probá de nuevo.');
+    return;
+  }
   const cont = document.getElementById('comentariosCargos');
   cont.innerHTML = '';
   comentariosDirectorio = {};
