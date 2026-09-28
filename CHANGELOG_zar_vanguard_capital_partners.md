@@ -697,3 +697,44 @@ falta podar por ahora.
 
 *Agregado por Claude Sonnet 5 -- 2026-09-28, a pedido de Pedro (actualización de changelog +
 revisión de carpeta).*
+
+
+## 2026-09-28 (cont.) — Confirmado: integración del Fondo de Emergencia en ZAR Finance ya está en vivo
+
+Pendiente resuelto de la sesión anterior: se le pasó al chat de ZAR Finance una pregunta puntual
+sobre si el `INSTRUCTIVO_conectar_fondo_emergencia_en_zar_finance.md` ya había sido ejecutado.
+Respuesta confirmada por ese chat:
+
+- El instructivo se aplicó y se probó en vivo el 27/09. Implementado en `html/index.html` (copia
+  de trabajo de ZAR Finance), card "Fondo de Emergencia" de la pestaña Inversiones.
+- `FE_ACTUAL` pasó de `const` a `let`; `FE_META` sigue fija en $3.600.000 (coincide con la suma de
+  `metaARS` de los 4 buckets de Vanguard).
+- Nueva función `window._listenFondoEmergenciaVanguard(cb, errCb)` en el script `module`: un
+  listener `onValue` por cada uno de los 4 buckets (`desempleo`, `accidentesFisicos`,
+  `multasLegales`, `otros`) sobre `clientes/pedro/vanguard/fondoEmergencia/buckets/{bucketId}/aportes`,
+  sumando los `monto` de cada aporte.
+- Nueva función `feVanguardSuscribir()` en el script clásico (mismo patrón de espera de `fb-ok` que
+  ya usan otros listeners de ese lado) que actualiza `FE_ACTUAL` en vivo y repinta la card +
+  `renderBucketsLiquidez()` + `renderHogar()`.
+- Es lectura en vivo (`onValue`), no una foto puntual -- cualquier cambio del lado de Vanguard se
+  refleja solo del lado de ZAR Finance, sin pasos adicionales.
+- Regla dura respetada: cero escritura (`.set()/.push()/.update()/.remove()`) desde ZAR Finance
+  sobre el nodo de Vanguard -- solo lectura, tal como pedía el instructivo original.
+- Prueba en vivo (27/09): Pedro cargó un aporte de prueba en un bucket desde Vanguard y ambas
+  pantallas mostraron el mismo total ($136.860.098) y el mismo texto de estado ("Piso del Fondo de
+  Emergencia cubierto..."). Confirma que el listener lee el nodo real correctamente y replica la
+  misma lógica de suma que `armarResumenCartera()` usa del lado de Vanguard.
+- Único punto suelto (del lado de ZAR Finance, no de Vanguard): el código todavía vive solo en la
+  copia de trabajo, no se copió aún al repo de deploy (`~/finance`) -- está encolado junto con otra
+  tanda de features de ZAR Finance pendientes de prueba antes del próximo deploy general. No afecta
+  la lectura del dato: mientras se abra la copia de trabajo local, ya lee Vanguard en tiempo real.
+- El chat de ZAR Finance confirmó además que no hace falta re-evaluar el enfoque -- el instructivo
+  se siguió al pie de la letra, sin desviaciones.
+
+Con esto, el punto 2 de los "PENDIENTES REALES" de la sección anterior queda cerrado. Pendientes
+restantes sin cambios: dinamismo visual del directorio, test/discrepancia de reglas Firebase para
+"madre", contexto sobre "Supervisión de Gestor Externo", y confirmación en vivo del fix de timing
+del botón "Generar comentarios del directorio".
+
+*Agregado por Claude Sonnet 5 -- 2026-09-28, a pedido de Pedro (confirmación cruzada con el chat de
+ZAR Finance).*
