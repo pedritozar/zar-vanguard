@@ -610,3 +610,90 @@ no una tarea en curso.
   diseño sobre dinamismo visual (punto 4).
 
 *Agregado por Claude Sonnet 5 — 2026-09-17, a pedido de Pedro (cierre de sesión).*
+
+
+## 2026-09-27/28 — Prueba piloto con datos reales, bug de timing encontrado y arreglado, reset, y contexto nuevo sobre un módulo futuro
+
+Retomado en un chat nuevo. Repaso exhaustivo del estado real (carpeta + git + memoria) antes de
+arrancar: las 4 tandas seguían cerradas tal cual quedaron el 17/09, nada se había tocado en el
+dispositivo desde entonces (hashes idénticos). El push manual de Pedro de los ~10 commits
+acumulados de Tanda 3/4 quedó confirmado hecho (commit `e33335e` en adelante ya estaban en
+`origin/main`).
+
+**Ambiente de ejecución -- confirmado, sin cambios de código.** Un intento de abrir `index.html`
+por doble clic directo (`file://`) volvió a reproducir el error de Firebase Auth
+(`operation-not-supported-in-this-environment`) y el Directorio sin ver la API Key guardada --
+exactamente el problema que el launcher (`🚀_ABRIR_ESTE_no_index.command`) ya resuelve. No hacía
+falta ningún fix nuevo, solo el hábito de abrir siempre por ahí.
+
+**Bloqueo de Firebase del 17/09 -- ya no reproduce, sin que se haya tocado ninguna regla.**
+Usando el launcher de punta a punta, Modo Revisión de Cartera leyó los datos reales de
+`clientes/pedro/vanguard/fondoEmergencia/buckets` sin `permission_denied`. Quedó sin resolver
+*por qué* -- hipótesis: el error del 17/09 pudo haber sido un efecto del entorno `file://` roto de
+ese día (sesión de auth inconsistente), no un gap real de reglas. Ver más abajo el instructivo
+encontrado en la carpeta sobre este mismo tema.
+
+**Contexto nuevo, no generado en este chat:** apareció en la carpeta
+`INSTRUCTIVO_reglas_firebase_clientes_madre_vanguard.md`, sin commitear, escrito aparentemente en
+otra sesión. Documenta un módulo futuro -- **"Supervisión de Gestor Externo"** -- para trackear la
+cartera de Pedro y de su madre en el bróker Alfy Inversiones, que agregaría un segundo nodo
+`clientes/madre/vanguard/...` (mismo login de Pedro, mismo UID, clienteId distinto). Primera vez
+que este módulo aparece documentado en el chat de Vanguard -- falta que Pedro dé más contexto.
+Revisado y señalada una contradicción real: el documento da por confirmado y urgente el bug de
+reglas del 17/09, pero la prueba de esta sesión (arriba) sugiere que ya no reproduce. Se agregó una
+nota al final del archivo (sin tocar el contenido original) proponiendo una prueba barata --leer
+`clientes/madre/vanguard/...`, que no tiene datos, y ver si lee vacío o tira `permission_denied`--
+antes de mandarlo al chat que administra la consola de Firebase. Commiteado a este repo (vive acá
+como documentación de contexto), pero sus instrucciones siguen apuntando a pegarse en el OTRO chat
+-- este sigue sin tocar infraestructura compartida ni consola de Firebase.
+
+**Prueba piloto con datos reales (28/09) -- expuso un bug real de timing, no de los prompts.**
+Pedro cargó aportes de prueba grandes y dispares en los 4 buckets (Desempleo $1.414.444 -- 78.6%
+de meta; Accidentes físicos $16.000.000 -- 2222.2%; Multas/imprevistos $5.000.000 -- 925.9%; Otros
+$114.445.654 -- 21193.6%) y corrió "Generar comentarios del directorio". Los 5 cargos respondieron
+que `RESUMEN_CARTERA_TEXTO` les había llegado vacío -- comportamiento CORRECTO de los prompts
+(preferir decir "no tengo datos" antes que inventar cifras), pero síntoma de un bug real: el botón
+"Generar comentarios del directorio" quedaba habilitado apenas `revisionContenido` pasaba a
+`display:block` (login OK), sin esperar a que `armarResumenCartera()` terminara sus lecturas async
+de Firebase. Si se apretaba en esa ventana, el resumen todavía estaba vacío.
+
+Fix aplicado en 3 capas (commit `4014f6f`, sin push): el botón ahora arranca `disabled` en el
+HTML; `cargarYArmarResumen()` lo deshabilita explícitamente al empezar y lo rehabilita recién
+cuando `armarResumenCartera()` resuelve con éxito; y `generarComentariosDirectorio()` chequea
+`RESUMEN_CARTERA_TEXTO` como defensa adicional antes de generar nada. Verificado con `node
+--check`, diff acotado a estos 3 cambios, resto de Tanda 4a/4b intacto. Pendiente confirmar en
+vivo que "Generar comentarios" funciona de punta a punta con datos reales cargados -- todavía no
+se vio correr exitosamente después del fix.
+
+**Reset a cero -- resuelto sin Terminal ni consola de Firebase.** Los 4 aportes de prueba se
+borraron directo desde el dashboard (`index.html`, pestaña Fondo de Emergencia), con el botón ✕ que
+ya existe por aporte (`eliminarAporte()` hace un `.remove()` real contra Firebase con la sesión
+autenticada de Pedro). Confirmado: Fondo de Emergencia volvió a $0 / 0.0% en los 4 buckets.
+Portafolio nunca llegó a tener tenencias cargadas en esta prueba, sigue en $0 sin necesidad de
+reset.
+
+**Skill nueva creada esta sesión:** aislamiento de proyectos explícito para este chat -- nunca
+tocar `.html` ni reglas de Firebase de otros proyectos (ZAR Finance, consola de `zarfinance`,
+etc.) directamente; cuando el trabajo lo requiera, armar un instructivo para el chat
+correspondiente con el contexto completo y el motivo puntual de lo que se pide tocar, en vez de
+hacerlo acá.
+
+### PENDIENTES REALES para el próximo chat
+
+- **Directorio "más dinámico":** se propusieron 3 ideas cosméticas (mesa de 5 asientos con estado
+  visual, ficha de identidad por cargo antes del chat, indicador de sesión activa en Modo Revisión)
+  -- Pedro todavía no eligió ninguna ni pidió combinarlas.
+- **Instructivo de ZAR Finance** (conectar la card estática del Fondo de Emergencia en vivo):
+  segundo pedido de confirmación, Pedro todavía no dijo si lo corrió en ese chat.
+- **Instructivo de reglas de Firebase para "madre":** correr la prueba barata sugerida arriba
+  antes de decidir si se manda tal cual, se corrige, o se descarta.
+- **Módulo "Supervisión de Gestor Externo":** falta que Pedro dé contexto -- es la primera mención
+  en este chat.
+- **Confirmar en vivo** que "Generar comentarios del directorio" funciona de punta a punta ya con
+  el fix de timing aplicado.
+
+CHANGELOG en 612 líneas a esta fecha -- todavía lejos del umbral de poda (~1000-1200), no hace
+falta podar por ahora.
+
+*Agregado por Claude Sonnet 5 -- 2026-09-28, a pedido de Pedro (actualización de changelog +
+revisión de carpeta).*
